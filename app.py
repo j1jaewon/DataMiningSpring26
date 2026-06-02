@@ -30,7 +30,10 @@ GRADE_BG     = {"A": "#e8f7ef", "B": "#e8f0fb", "C": "#fdf6e3", "D": "#fdecea"}
 GRADE_BORDER = {"A": "#a3d9b8", "B": "#a3c0e8", "C": "#e8d5a0", "D": "#f0a8a0"}
 GRADE_LABEL  = {"A": "강력 추천", "B": "추천", "C": "보통", "D": "참고"}
 RANK_MEDAL   = {1: "🥇", 2: "🥈", 3: "🥉"}
-PLOTLY_COLORS = ["#2d6a9f", "#1a7a4a", "#b07c00", "#c0392b", "#8e44ad", "#16a085"]
+PLOTLY_COLORS = [
+    "#4C8EDA", "#3BAB72", "#F0A500", "#E05C5C", "#9B72CF",
+    "#36B8B8", "#E07B3A", "#6BAE75", "#D45FA0", "#7B9ECC", "#A8C96E",
+]
 
 # ── 전역 CSS ──────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -698,6 +701,7 @@ with tab_explore:
                 xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
                 yaxis=dict(showgrid=False, autorange='reversed'),
                 font=dict(family='Noto Sans KR, sans-serif', size=11),
+                bargap=0.4,
             )
             st.plotly_chart(fig_exp, use_container_width=True,
                             config={'displayModeBar': False})
@@ -747,10 +751,8 @@ with tab_dashboard:
         fig_ind = go.Figure(go.Bar(
             y=ind_stats['업종'], x=ind_stats['성공률(%)'],
             orientation='h',
-            marker_color=[
-                "#1a7a4a" if v >= 50 else "#2d6a9f" if v >= 35 else "#b07c00"
-                for v in ind_stats['성공률(%)']
-            ],
+            marker_color=PLOTLY_COLORS[:len(ind_stats)],
+            marker_opacity=0.85,
             text=[f"{v}%" for v in ind_stats['성공률(%)']],
             textposition='outside',
         ))
@@ -761,6 +763,7 @@ with tab_dashboard:
             xaxis=dict(range=[0, 100], showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
             font=dict(family='Noto Sans KR, sans-serif', size=12),
+            bargap=0.4,
         )
         st.plotly_chart(fig_ind, use_container_width=True,
                         config={'displayModeBar': False})
@@ -788,6 +791,7 @@ with tab_dashboard:
             xaxis=dict(showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
             font=dict(family='Noto Sans KR, sans-serif', size=12),
+            bargap=0.4,
         )
         st.plotly_chart(fig_ctr, use_container_width=True,
                         config={'displayModeBar': False})
@@ -816,6 +820,7 @@ with tab_dashboard:
             xaxis=dict(showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
             font=dict(family='Noto Sans KR, sans-serif', size=12),
+            bargap=0.4,
         )
         st.plotly_chart(fig_top, use_container_width=True,
                         config={'displayModeBar': False})
