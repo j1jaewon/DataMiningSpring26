@@ -262,15 +262,13 @@ with tab_match:
         col1, col2, col3 = st.columns(3)
         with col1:
             brand_options = brands[['Brand_ID', 'Brand_Name', 'Industry']].copy()
-            brand_display_raw = brand_options.apply(
-                lambda r: (f"{r['Brand_Name']} ({r['Industry']})", r.name), axis=1
+            brand_options = brand_options.sort_values('Brand_Name').reset_index(drop=True)
+            brand_display = brand_options.apply(
+                lambda r: f"{r['Brand_Name']} ({r['Industry']})", axis=1
             ).tolist()
-            brand_display_sorted = sorted(brand_display_raw, key=lambda x: x[0])
-            brand_display = [d for d, _ in brand_display_sorted]
-            brand_orig_idx = [i for _, i in brand_display_sorted]
             selected_idx = st.selectbox("브랜드 선택", range(len(brand_display)),
                                         format_func=lambda i: brand_display[i])
-            brand_id  = brand_options.iloc[brand_orig_idx[selected_idx]]['Brand_ID']
+            brand_id  = brand_options.iloc[selected_idx]['Brand_ID']
             brand_row = brands[brands['Brand_ID'] == brand_id].iloc[0]
 
         with col2:
