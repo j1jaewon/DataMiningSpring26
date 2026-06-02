@@ -205,46 +205,45 @@ def plotly_score_bar(row):
     return fig
 
 # ── 헤더 + 소개 (통합) ────────────────────────────────────────────────────────
-st.markdown("""
-<div style='padding:2rem 0 0.5rem; border-bottom:1px solid #e8edf2; margin-bottom:0.2rem;'>
-    <div style='display:flex; align-items:flex-start; justify-content:space-between;
-                flex-wrap:wrap; gap:1rem;'>
-        <div>
-            <div style='font-size:0.72rem; font-weight:600; color:#9aadbe;
-                        letter-spacing:2px; text-transform:uppercase; margin-bottom:0.5rem;'>
-                KAIST BIZ &nbsp;·&nbsp; Business Analytics 2026
-            </div>
-            <div style='font-size:2rem; font-weight:900; color:#1a3a5c;
-                        letter-spacing:-1.5px; line-height:1.1;'>
-                Creator <span style='color:#2d6a9f;'>Match</span>
-            </div>
-            <div style='font-size:0.95rem; color:#555; margin-top:0.6rem;
-                        font-weight:400; line-height:1.7;'>
-                브랜드 ↔ 크리에이터, 양방향 매칭<br>
-                <span style='font-size:0.82rem; color:#999;'>
-                    976건의 실제 협업 데이터로 학습 &nbsp;·&nbsp; AI가 최적 파트너를 점수로 추천합니다
-                </span>
-            </div>
-        </div>
-        <div style='display:flex; gap:2rem; align-items:center; padding-top:0.5rem;'>
-            <div style='text-align:center;'>
-                <div style='font-size:1.6rem; font-weight:800; color:#1a3a5c; line-height:1;'>490</div>
-                <div style='font-size:0.72rem; color:#999; margin-top:0.2rem; letter-spacing:0.5px;'>크리에이터</div>
-            </div>
-            <div style='width:1px; height:2rem; background:#e0e8f0;'></div>
-            <div style='text-align:center;'>
-                <div style='font-size:1.6rem; font-weight:800; color:#1a3a5c; line-height:1;'>100</div>
-                <div style='font-size:0.72rem; color:#999; margin-top:0.2rem; letter-spacing:0.5px;'>브랜드</div>
-            </div>
-            <div style='width:1px; height:2rem; background:#e0e8f0;'></div>
-            <div style='text-align:center;'>
-                <div style='font-size:1.6rem; font-weight:800; color:#1a3a5c; line-height:1;'>976</div>
-                <div style='font-size:0.72rem; color:#999; margin-top:0.2rem; letter-spacing:0.5px;'>협업 이력</div>
-            </div>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    "<div style='background:linear-gradient(135deg,#1a3a5c 0%,#2d6a9f 60%,#3a87c0 100%);"
+    "border-radius:16px;padding:2rem 2.2rem 1.6rem;margin-bottom:1.4rem;'>"
+    "<div style='display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;'>"
+    "<div>"
+    "<div style='font-size:0.68rem;font-weight:600;color:#a8c8e8;letter-spacing:2.5px;"
+    "text-transform:uppercase;margin-bottom:0.6rem;'>"
+    "KAIST BIZ &nbsp;·&nbsp; Business Analytics 2026"
+    "</div>"
+    "<div style='font-size:2.4rem;font-weight:900;color:white;letter-spacing:-1.5px;line-height:1.1;'>"
+    "Creator <span style='color:#7ec8f0;'>Match</span>"
+    "</div>"
+    "<div style='font-size:0.9rem;color:#c8dff0;margin-top:0.7rem;line-height:1.75;'>"
+    "브랜드에는 맞는 크리에이터를, 크리에이터에는 맞는 브랜드를<br>"
+    "<span style='font-size:0.8rem;color:#90b8d8;'>"
+    "976건의 실제 협업 데이터로 학습한 AI가 최적 파트너를 점수로 추천합니다"
+    "</span>"
+    "</div>"
+    "</div>"
+    "<div style='display:flex;gap:2rem;align-items:center;padding-top:0.5rem;'>"
+    "<div style='text-align:center;'>"
+    "<div style='font-size:1.8rem;font-weight:800;color:white;line-height:1;'>490</div>"
+    "<div style='font-size:0.7rem;color:#a8c8e8;margin-top:0.3rem;letter-spacing:0.5px;'>크리에이터</div>"
+    "</div>"
+    "<div style='width:1px;height:2.2rem;background:rgba(255,255,255,0.2);'></div>"
+    "<div style='text-align:center;'>"
+    "<div style='font-size:1.8rem;font-weight:800;color:white;line-height:1;'>100</div>"
+    "<div style='font-size:0.7rem;color:#a8c8e8;margin-top:0.3rem;letter-spacing:0.5px;'>브랜드</div>"
+    "</div>"
+    "<div style='width:1px;height:2.2rem;background:rgba(255,255,255,0.2);'></div>"
+    "<div style='text-align:center;'>"
+    "<div style='font-size:1.8rem;font-weight:800;color:white;line-height:1;'>976</div>"
+    "<div style='font-size:0.7rem;color:#a8c8e8;margin-top:0.3rem;letter-spacing:0.5px;'>협업 이력</div>"
+    "</div>"
+    "</div>"
+    "</div>"
+    "</div>",
+    unsafe_allow_html=True,
+)
 
 # ── 메인 탭 ───────────────────────────────────────────────────────────────────
 tab_match, tab_explore, tab_dashboard = st.tabs([
@@ -258,60 +257,39 @@ tab_match, tab_explore, tab_dashboard = st.tabs([
 with tab_match:
 
     st.markdown("<div class='section-title'>브랜드 조건 입력</div>", unsafe_allow_html=True)
+    st.caption("브랜드 정보를 선택하면 AI가 최적의 크리에이터를 매칭 점수 순으로 추천합니다.")
     with st.container():
         col1, col2, col3 = st.columns(3)
         with col1:
             brand_options = brands[['Brand_ID', 'Brand_Name', 'Industry']].copy()
-            brand_display = brand_options.apply(
-                lambda r: f"{r['Brand_Name']} ({r['Industry']})", axis=1
+            brand_display_raw = brand_options.apply(
+                lambda r: (f"{r['Brand_Name']} ({r['Industry']})", r.name), axis=1
             ).tolist()
+            brand_display_sorted = sorted(brand_display_raw, key=lambda x: x[0])
+            brand_display = [d for d, _ in brand_display_sorted]
+            brand_orig_idx = [i for _, i in brand_display_sorted]
             selected_idx = st.selectbox("브랜드 선택", range(len(brand_display)),
                                         format_func=lambda i: brand_display[i])
-            brand_id  = brand_options.iloc[selected_idx]['Brand_ID']
+            brand_id  = brand_options.iloc[brand_orig_idx[selected_idx]]['Brand_ID']
             brand_row = brands[brands['Brand_ID'] == brand_id].iloc[0]
 
         with col2:
-            rc1, rc2 = st.columns([8, 1])
-            with rc1:
-                risk_threshold = st.slider("최소 Risk Score", 1.0, 5.0, 2.5, 0.5)
-            with rc2:
-                st.markdown("<div style='height:1.6rem;'></div>", unsafe_allow_html=True)
-                with st.popover("❓"):
-                    st.markdown("""
-**Risk Score란?**
-
-크리에이터의 콘텐츠 신뢰도·브랜드 안전성 지수입니다.
-
-| 점수 | 의미 |
-|------|------|
-| 4.0 ~ 5.0 | 우수 — 브랜드 안전 |
-| 3.0 ~ 4.0 | 보통 — 검토 권장 |
-| 2.5 ~ 3.0 | 주의 — 선별 필요 |
-| 2.5 미만   | 제외 — 자동 필터링 |
-
-> 기본값 2.5 미만은 추천에서 자동 제외됩니다.
-                    """)
+            risk_threshold = st.slider(
+                "최소 Risk Score", 1.0, 5.0, 2.5, 0.5,
+                help=(
+                    "크리에이터의 콘텐츠 신뢰도·브랜드 안전성 지수\n\n"
+                    "4.0~5.0 우수 | 3.0~4.0 보통 | 2.5~3.0 주의 | 2.5 미만 자동 제외"
+                ),
+            )
         with col3:
-            gc1, gc2 = st.columns([8, 1])
-            with gc1:
-                top_n = st.slider("추천 크리에이터 수", 1, 10, 3)
-            with gc2:
-                st.markdown("<div style='height:1.6rem;'></div>", unsafe_allow_html=True)
-                with st.popover("❓"):
-                    st.markdown("""
-**추천 등급 기준**
-
-매칭 점수 = 카테고리×0.3 + 조건매칭×0.3 + 협업필터링×0.4
-
-| 등급 | 점수 | 캠페인 성공률 |
-|------|------|-------------|
-| A | 0.9 이상 | **75.7%** |
-| B | 0.8 ~ 0.9 | 58.8% |
-| C | 0.7 ~ 0.8 | 46.6% |
-| D | 0.7 미만  | 20.0% |
-
-> **등급 B 이상(0.8+) 크리에이터를 추천합니다.**
-                    """)
+            top_n = st.slider(
+                "추천 크리에이터 수", 1, 10, 3,
+                help=(
+                    "매칭 점수 = 카테고리×0.3 + 조건매칭×0.3 + 협업필터링×0.4\n\n"
+                    "A(0.9+) 75.7% 성공 | B(0.8+) 58.8% | C(0.7+) 46.6% | D 20.0%\n\n"
+                    "등급 B 이상(0.8+) 크리에이터를 추천합니다."
+                ),
+            )
 
 
         st.markdown(
@@ -724,33 +702,33 @@ with tab_explore:
         n_c = collab_count.get(sel_cid_exp, 0)
         n_s = collab_success.get(sel_cid_exp, 0)
         succ_rate = int(n_s / n_c * 100) if n_c > 0 else 0
-        st.markdown("<div style='background:#f8fafc;border-radius:10px;padding:1rem 1.2rem 0.8rem;margin:0.5rem 0 1rem;'>",
-                    unsafe_allow_html=True)
-        with st.container():
-            metrics = [
-                ("플랫폼",     ci['Platform']),
-                ("카테고리",   ci['Category']),
-                ("구독자",     fmt_followers(ci['Followers'])),
-                ("참여율",     f"{ci['Engagement_Rate']}%"),
-                ("Risk Score", f"{ci['Risk_Score']}"),
-            ]
-            cols_m = st.columns(len(metrics))
-            for col_m, (label, val) in zip(cols_m, metrics):
-                col_m.markdown(
-                    f"<div style='font-family:\"Noto Sans KR\",sans-serif;'>"
-                    f"<div style='font-size:0.78rem;color:#888;margin-bottom:0.25rem;'>{label}</div>"
-                    f"<div style='font-size:1.45rem;font-weight:700;color:#1a3a5c;letter-spacing:-0.5px;'>{val}</div>"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
-            st.markdown(
-                f"<div style='font-family:\"Noto Sans KR\",sans-serif;font-size:0.88rem;"
-                f"color:#555;margin-top:0.6rem;'>"
-                f"협업 이력 <b>{n_c}회</b> &nbsp;|&nbsp; 성공 <b>{n_s}회</b> ({succ_rate}%)"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-        st.markdown("</div>", unsafe_allow_html=True)
+        metrics = [
+            ("플랫폼",     ci['Platform']),
+            ("카테고리",   ci['Category']),
+            ("구독자",     fmt_followers(ci['Followers'])),
+            ("참여율",     f"{ci['Engagement_Rate']}%"),
+            ("Risk Score", f"{ci['Risk_Score']}"),
+        ]
+        metric_items = "".join(
+            f"<div style='flex:1;text-align:center;'>"
+            f"<div style='font-size:0.75rem;color:#888;margin-bottom:0.2rem;'>{label}</div>"
+            f"<div style='font-size:1.3rem;font-weight:700;color:#1a3a5c;letter-spacing:-0.5px;'>{val}</div>"
+            f"</div>"
+            for label, val in metrics
+        )
+        st.markdown(
+            f"<div style='background:#f8fafc;border-radius:10px;padding:1rem 1.2rem 0.8rem;"
+            f"margin:0.5rem 0 1rem;'>"
+            f"<div style='display:flex;gap:0.5rem;align-items:center;'>"
+            f"{metric_items}"
+            f"</div>"
+            f"<div style='font-size:0.85rem;color:#555;margin-top:0.7rem;border-top:1px solid #e8edf2;"
+            f"padding-top:0.5rem;'>"
+            f"협업 이력 <b>{n_c}회</b> &nbsp;|&nbsp; 성공 <b>{n_s}회</b> ({succ_rate}%)"
+            f"</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
         # 맞는 브랜드 Top 10
         st.markdown("#### 이 크리에이터에게 맞는 브랜드 Top 10")
