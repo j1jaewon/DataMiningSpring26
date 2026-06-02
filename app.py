@@ -204,58 +204,44 @@ def plotly_score_bar(row):
     )
     return fig
 
-# ── 헤더 ──────────────────────────────────────────────────────────────────────
+# ── 헤더 + 소개 (통합) ────────────────────────────────────────────────────────
 st.markdown("""
-<div style='background: linear-gradient(135deg, #1a3a5c 0%, #2d6a9f 100%);
-            padding: 2rem 2.5rem; border-radius: 14px; margin-bottom: 1.5rem;
-            box-shadow: 0 4px 20px rgba(26,58,92,0.18);
-            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;'>
-    <div>
-        <div style='color:#a8c8e8; font-size:0.75rem; font-weight:600; letter-spacing:2px;
-                    text-transform:uppercase; margin-bottom:0.35rem;'>
-            KAIST BIZ &nbsp;·&nbsp; 비즈니스 애널리틱스 2026
-        </div>
-        <h1 style='color: white; margin: 0; font-size: 2.2rem; font-weight:800;
-                   letter-spacing:-1px; line-height:1.15;'>
-            Creator <span style='color:#7ec8f0;'>Match</span>
-        </h1>
-        <p style='color: #c8dff0; margin: 0.45rem 0 0; font-size: 0.92rem; font-weight:400;'>
-            AI 기반 기업·크리에이터 매칭 플랫폼
-        </p>
-    </div>
-    <div style='text-align:right;'>
-        <div style='color:white; font-size:0.78rem; opacity:0.7; margin-bottom:0.3rem;'>
-            데이터 현황
-        </div>
-        <div style='display:flex; gap:1.2rem;'>
-            <div style='text-align:center;'>
-                <div style='color:white; font-size:1.3rem; font-weight:800;'>490</div>
-                <div style='color:#a8c8e8; font-size:0.7rem;'>크리에이터</div>
+<div style='padding:2rem 0 0.5rem; border-bottom:1px solid #e8edf2; margin-bottom:0.2rem;'>
+    <div style='display:flex; align-items:flex-start; justify-content:space-between;
+                flex-wrap:wrap; gap:1rem;'>
+        <div>
+            <div style='font-size:0.72rem; font-weight:600; color:#9aadbe;
+                        letter-spacing:2px; text-transform:uppercase; margin-bottom:0.5rem;'>
+                KAIST BIZ &nbsp;·&nbsp; Business Analytics 2026
             </div>
-            <div style='text-align:center;'>
-                <div style='color:white; font-size:1.3rem; font-weight:800;'>100</div>
-                <div style='color:#a8c8e8; font-size:0.7rem;'>브랜드</div>
+            <div style='font-size:2rem; font-weight:900; color:#1a3a5c;
+                        letter-spacing:-1.5px; line-height:1.1;'>
+                Creator <span style='color:#2d6a9f;'>Match</span>
             </div>
-            <div style='text-align:center;'>
-                <div style='color:white; font-size:1.3rem; font-weight:800;'>976</div>
-                <div style='color:#a8c8e8; font-size:0.7rem;'>협업 이력</div>
+            <div style='font-size:0.95rem; color:#555; margin-top:0.6rem;
+                        font-weight:400; line-height:1.7;'>
+                브랜드 ↔ 크리에이터, 양방향 매칭<br>
+                <span style='font-size:0.82rem; color:#999;'>
+                    976건의 실제 협업 데이터로 학습 &nbsp;·&nbsp; AI가 최적 파트너를 점수로 추천합니다
+                </span>
             </div>
         </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ── 소개 문구 ─────────────────────────────────────────────────────────────────
-st.markdown("""
-<div style='text-align:center;padding:1.4rem 0 1rem;'>
-    <div style='font-size:1.35rem;font-weight:800;color:#1a3a5c;
-                letter-spacing:-0.5px;line-height:1.4;'>
-        브랜드 ↔ 크리에이터, 양방향 매칭
-    </div>
-    <div style='font-size:0.88rem;color:#888;margin-top:0.5rem;line-height:1.9;
-                font-weight:400;'>
-        976건의 실제 협업 데이터로 학습<br>
-        AI가 최적 파트너를 점수로 추천합니다
+        <div style='display:flex; gap:2rem; align-items:center; padding-top:0.5rem;'>
+            <div style='text-align:center;'>
+                <div style='font-size:1.6rem; font-weight:800; color:#1a3a5c; line-height:1;'>490</div>
+                <div style='font-size:0.72rem; color:#999; margin-top:0.2rem; letter-spacing:0.5px;'>크리에이터</div>
+            </div>
+            <div style='width:1px; height:2rem; background:#e0e8f0;'></div>
+            <div style='text-align:center;'>
+                <div style='font-size:1.6rem; font-weight:800; color:#1a3a5c; line-height:1;'>100</div>
+                <div style='font-size:0.72rem; color:#999; margin-top:0.2rem; letter-spacing:0.5px;'>브랜드</div>
+            </div>
+            <div style='width:1px; height:2rem; background:#e0e8f0;'></div>
+            <div style='text-align:center;'>
+                <div style='font-size:1.6rem; font-weight:800; color:#1a3a5c; line-height:1;'>976</div>
+                <div style='font-size:0.72rem; color:#999; margin-top:0.2rem; letter-spacing:0.5px;'>협업 이력</div>
+            </div>
+        </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
