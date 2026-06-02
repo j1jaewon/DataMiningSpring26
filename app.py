@@ -82,25 +82,23 @@ html, body, [class*="css"], .stMarkdown, .stDataFrame,
 }
 /* KPI 카드 */
 .kpi-card {
-    background: white;
-    border: 1px solid #e0e8f0;
-    border-radius: 12px;
-    padding: 1.2rem 1.5rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 1.1rem 1.5rem;
     text-align: center;
 }
 .kpi-value { font-size: 2rem; font-weight: 800; color: #1a3a5c; }
 .kpi-label { font-size: 0.82rem; color: #888; margin-top: 0.2rem; }
 /* 섹션 헤더 */
 .section-title {
-    font-size: 0.92rem;
+    font-size: 1rem;
     font-weight: 700;
-    color: #4a6080;
-    margin: 1.4rem 0 0.5rem;
-    padding: 0.3rem 0.7rem;
-    background: #f0f4f8;
-    border-radius: 6px;
-    display: inline-block;
-    letter-spacing: 0.2px;
+    color: #1a3a5c;
+    margin: 1.6rem 0 0.8rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #e4eaf0;
+    display: block;
+    letter-spacing: -0.2px;
 }
 /* 사유 태그 */
 .reason-tag {
@@ -272,9 +270,8 @@ tab_match, tab_explore, tab_dashboard = st.tabs([
 # ════════════════════════════════════════════════════════════════════════════
 with tab_match:
 
-    # ① 브랜드 조건 입력
-    st.markdown("<div class='section-title'>① 브랜드 조건 입력</div>", unsafe_allow_html=True)
-    with st.container(border=True):
+    st.markdown("<div class='section-title'>브랜드 조건 입력</div>", unsafe_allow_html=True)
+    with st.container():
         col1, col2, col3 = st.columns(3)
         with col1:
             brand_options = brands[['Brand_ID', 'Brand_Name', 'Industry']].copy()
@@ -330,17 +327,16 @@ with tab_match:
                     """)
 
 
-        st.markdown(f"""
-        <div style='background:linear-gradient(90deg,#f0f4f8,#e8f0fb);
-                    border-radius:10px; padding:0.8rem 1.2rem; margin-top:0.4rem;
-                    display:flex; gap:2rem; flex-wrap:wrap; font-size:0.87rem; color:#444;'>
-            <span>🏢 <b>{brand_row['Brand_Name']}</b></span>
-            <span>🏷️ {brand_row['Industry']}</span>
-            <span>💰 월 예산 {brand_row['Monthly_Budget']:,}원</span>
-            <span>🎯 타겟 {brand_row['Target_Age']} / {brand_row['Target_Gender']}</span>
-            <span>📱 선호 플랫폼 {brand_row['Preferred_Platform']}</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='font-size:0.83rem;color:#666;margin:0.5rem 0 0.8rem;'>"
+            f"<b style='color:#1a3a5c;'>{brand_row['Brand_Name']}</b>"
+            f" &nbsp;·&nbsp; {brand_row['Industry']}"
+            f" &nbsp;·&nbsp; 월 예산 {brand_row['Monthly_Budget']:,}원"
+            f" &nbsp;·&nbsp; 타겟 {brand_row['Target_Age']} / {brand_row['Target_Gender']}"
+            f" &nbsp;·&nbsp; {brand_row['Preferred_Platform']}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
         run = st.button("🔍 추천 받기", type="primary", use_container_width=True)
 
@@ -470,7 +466,7 @@ with tab_match:
             # ③ 매칭 점수 분포
             st.markdown("<div class='section-title'>③ 매칭 점수 분포</div>",
                         unsafe_allow_html=True)
-            with st.container(border=True):
+            with st.container():
                 brand_scores = similarity_df[similarity_df['Brand_ID'] == brand_id].copy()
                 risk_map_all = dict(zip(creators['Creator_ID'], creators['Risk_Score']))
                 brand_scores['Risk_Score'] = brand_scores['Creator_ID'].map(risk_map_all)
@@ -560,7 +556,7 @@ with tab_match:
             if cases.empty:
                 st.info("동일 업종의 성공 협업 사례가 없습니다.")
             else:
-                with st.container(border=True):
+                with st.container():
                     st.markdown(
                         "<div style='display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1fr;"
                         "gap:0.3rem;padding:0.35rem 0.5rem;background:#f5f7fa;"
@@ -589,7 +585,7 @@ with tab_match:
             # ⑤ 같은 업종 브랜드 비교
             st.markdown("<div class='section-title'>⑤ 같은 업종 브랜드 비교</div>",
                         unsafe_allow_html=True)
-            with st.container(border=True):
+            with st.container():
                 compare_brands = brands[
                     (brands['Industry'] == brand_row['Industry']) &
                     (brands['Brand_ID'] != brand_id)
@@ -656,7 +652,7 @@ with tab_match:
             # ⑥ 캠페인 성과 입력
             st.markdown("<div class='section-title'>⑥ 캠페인 성과 입력</div>",
                         unsafe_allow_html=True)
-            with st.container(border=True):
+            with st.container():
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     creator_options = top_df.apply(
@@ -698,11 +694,10 @@ with tab_match:
 # TAB 2: 크리에이터 탐색
 # ════════════════════════════════════════════════════════════════════════════
 with tab_explore:
-    st.markdown("<div class='section-title'>크리에이터 → 맞는 브랜드 탐색</div>",
-                unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>크리에이터 탐색</div>", unsafe_allow_html=True)
     st.caption("크리에이터 관점에서 협업 가능성이 높은 브랜드를 역방향으로 조회합니다.")
 
-    with st.container(border=True):
+    with st.container():
         ecol1, ecol2, ecol3 = st.columns(3)
         with ecol1:
             cat_filter = st.selectbox(
@@ -733,7 +728,7 @@ with tab_explore:
         n_c = collab_count.get(sel_cid_exp, 0)
         n_s = collab_success.get(sel_cid_exp, 0)
         succ_rate = int(n_s / n_c * 100) if n_c > 0 else 0
-        with st.container(border=True):
+        with st.container():
             metrics = [
                 ("플랫폼",     ci['Platform']),
                 ("카테고리",   ci['Category']),
