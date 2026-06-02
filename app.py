@@ -317,118 +317,88 @@ with tab_match:
                         st.info("해당 카테고리의 추천 결과가 없습니다.")
                         continue
 
-                    cols = st.columns(len(filtered))
-                    for col, (_, row) in zip(cols, filtered.iterrows()):
-                        grade  = row.get('recommendation_grade', grade_label(row['matching_score']))
-                        color  = GRADE_COLOR[grade]
-                        bg     = GRADE_BG[grade]
-                        border = GRADE_BORDER[grade]
-                        medal  = RANK_MEDAL.get(int(row['Rank']), f"{int(row['Rank'])}위")
-
-                        pos_reasons, neg_reasons = build_reasons(row, brand_row)
-                        tags_html = reason_tags_html(pos_reasons, neg_reasons)
-
-                        c_id       = row['Creator_ID']
-                        n_collab   = collab_count.get(c_id, 0)
-                        n_success  = collab_success.get(c_id, 0)
-                        follow_pct = min(int(row['Followers'] / max_followers * 100), 100)
-                        score_pct  = int(row['matching_score'] * 100)
-
-                        with col:
-                            st.markdown(f"""
-                            <div class='creator-card' style='border-color:{border};
-                                         border-top: 3px solid {color};'>
-                                <div style='display:flex; justify-content:space-between;
-                                            align-items:center; margin-bottom:0.5rem;'>
-                                    <span style='font-size:1.5rem;'>{medal}</span>
-                                    <span style='background:{bg}; color:{color};
-                                                 border-radius:20px; padding:0.15rem 0.6rem;
-                                                 font-size:0.75rem; font-weight:700;'>
-                                        {GRADE_LABEL[grade]}
-                                    </span>
-                                </div>
-                                <div style='font-size:1.1rem; font-weight:800; color:#1a3a5c;
-                                            margin-bottom:0.3rem; letter-spacing:-0.3px;'>
-                                    {row['Channel_Name']}
-                                </div>
-                                <div style='font-size:0.82rem; color:#888; margin-bottom:0.8rem;'>
-                                    {row['Platform']} &nbsp;·&nbsp; {row['Category']}
-                                </div>
-
-                                <div style='margin-bottom:0.8rem;'>
-                                    <div style='display:flex; justify-content:space-between;
-                                                font-size:0.78rem; color:#666; margin-bottom:0.3rem;'>
-                                        <span>매칭 점수</span>
-                                        <span style='font-weight:700; color:{color};'>
-                                            {row['matching_score']:.2f} &nbsp; 등급 {grade}
-                                        </span>
-                                    </div>
-                                    <div style='background:#f0f0f0; border-radius:6px; height:8px;'>
-                                        <div style='background:linear-gradient(90deg,{color}88,{color});
-                                                    height:8px; border-radius:6px;
-                                                    width:{score_pct}%;'></div>
-                                    </div>
-                                </div>
-
-                                <div style='margin-bottom:0.8rem;'>
-                                    <div style='display:flex; justify-content:space-between;
-                                                font-size:0.78rem; color:#666; margin-bottom:0.3rem;'>
-                                        <span>👥 구독자</span>
-                                        <span style='font-weight:600;'>
-                                            {fmt_followers(row['Followers'])}
-                                        </span>
-                                    </div>
-                                    <div style='background:#f0f0f0; border-radius:6px; height:6px;'>
-                                        <div style='background:#a3c0e8; height:6px; border-radius:6px;
-                                                    width:{follow_pct}%;'></div>
-                                    </div>
-                                </div>
-
-                                <div style='display:flex; gap:0.6rem; margin-bottom:0.8rem;
-                                            font-size:0.78rem;'>
-                                    <div style='flex:1; background:#f8f9fa; border-radius:8px;
-                                                padding:0.4rem; text-align:center;'>
-                                        <div style='color:#888; font-size:0.7rem;'>참여율</div>
-                                        <div style='font-weight:700; color:#1a3a5c;'>
-                                            {row['Engagement_Rate']}%
-                                        </div>
-                                    </div>
-                                    <div style='flex:1; background:#f8f9fa; border-radius:8px;
-                                                padding:0.4rem; text-align:center;'>
-                                        <div style='color:#888; font-size:0.7rem;'>협업</div>
-                                        <div style='font-weight:700; color:#1a3a5c;'>
-                                            {n_collab}회
-                                        </div>
-                                    </div>
-                                    <div style='flex:1; background:#f8f9fa; border-radius:8px;
-                                                padding:0.4rem; text-align:center;'>
-                                        <div style='color:#888; font-size:0.7rem;'>Risk</div>
-                                        <div style='font-weight:700; color:#1a3a5c;'>
-                                            {row['Risk_Score']}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>{tags_html}</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-
-                            with st.expander("📊 상세 분석"):
-                                st.plotly_chart(plotly_score_bar(row),
-                                                use_container_width=True,
-                                                config={'displayModeBar': False})
-
-                                past = collabs[collabs['Creator_ID'] == c_id][
-                                    ['Brand_ID', 'CTR', 'CVR', 'is_success']
-                                ].copy()
-                                if not past.empty:
-                                    past['브랜드'] = past['Brand_ID'].map(brand_name_map)
-                                    past['성공']   = past['is_success'].map({'Y': '✅', 'N': '❌'})
-                                    st.caption("과거 협업 성과")
-                                    st.dataframe(
-                                        past[['브랜드', 'CTR', 'CVR', '성공']].head(5),
-                                        use_container_width=True, hide_index=True
-                                    )
+                    rows_list = list(filtered.iterrows())
+                    for row_start in range(0, len(rows_list), 3):
+                        chunk = rows_list[row_start:row_start + 3]
+                        cols  = st.columns(len(chunk))
+                        for col, (_, row) in zip(cols, chunk):
+                            grade  = row.get('recommendation_grade', grade_label(row['matching_score']))
+                            color  = GRADE_COLOR[grade]
+                            bg     = GRADE_BG[grade]
+                            border = GRADE_BORDER[grade]
+                            medal  = RANK_MEDAL.get(int(row['Rank']), f"{int(row['Rank'])}위")
+                            pos_reasons, neg_reasons = build_reasons(row, brand_row)
+                            tags_html = reason_tags_html(pos_reasons, neg_reasons)
+                            c_id       = row['Creator_ID']
+                            n_collab   = collab_count.get(c_id, 0)
+                            n_success  = collab_success.get(c_id, 0)
+                            follow_pct = min(int(row['Followers'] / max_followers * 100), 100)
+                            score_pct  = int(row['matching_score'] * 100)
+                            with col:
+                                card_html = (
+                                    f"<div class='creator-card' style='border-color:{border};"
+                                    f"border-top:3px solid {color};'>"
+                                    f"<div style='display:flex;justify-content:space-between;"
+                                    f"align-items:center;margin-bottom:0.5rem;'>"
+                                    f"<span style='font-size:1.5rem;'>{medal}</span>"
+                                    f"<span style='background:{bg};color:{color};"
+                                    f"border-radius:20px;padding:0.15rem 0.6rem;"
+                                    f"font-size:0.75rem;font-weight:700;'>{GRADE_LABEL[grade]}</span>"
+                                    f"</div>"
+                                    f"<div style='font-size:1.1rem;font-weight:800;color:#1a3a5c;"
+                                    f"margin-bottom:0.3rem;letter-spacing:-0.3px;'>{row['Channel_Name']}</div>"
+                                    f"<div style='font-size:0.82rem;color:#888;margin-bottom:0.8rem;'>"
+                                    f"{row['Platform']} &nbsp;·&nbsp; {row['Category']}</div>"
+                                    f"<div style='margin-bottom:0.8rem;'>"
+                                    f"<div style='display:flex;justify-content:space-between;"
+                                    f"font-size:0.78rem;color:#666;margin-bottom:0.3rem;'>"
+                                    f"<span>매칭 점수</span>"
+                                    f"<span style='font-weight:700;color:{color};'>"
+                                    f"{row['matching_score']:.2f} &nbsp; 등급 {grade}</span></div>"
+                                    f"<div style='background:#f0f0f0;border-radius:6px;height:8px;'>"
+                                    f"<div style='background:linear-gradient(90deg,{color}88,{color});"
+                                    f"height:8px;border-radius:6px;width:{score_pct}%;'></div></div></div>"
+                                    f"<div style='margin-bottom:0.8rem;'>"
+                                    f"<div style='display:flex;justify-content:space-between;"
+                                    f"font-size:0.78rem;color:#666;margin-bottom:0.3rem;'>"
+                                    f"<span>👥 구독자</span>"
+                                    f"<span style='font-weight:600;'>{fmt_followers(row['Followers'])}</span></div>"
+                                    f"<div style='background:#f0f0f0;border-radius:6px;height:6px;'>"
+                                    f"<div style='background:#a3c0e8;height:6px;border-radius:6px;"
+                                    f"width:{follow_pct}%;'></div></div></div>"
+                                    f"<div style='display:flex;gap:0.6rem;margin-bottom:0.8rem;"
+                                    f"font-size:0.78rem;'>"
+                                    f"<div style='flex:1;background:#f8f9fa;border-radius:8px;"
+                                    f"padding:0.4rem;text-align:center;'>"
+                                    f"<div style='color:#888;font-size:0.7rem;'>참여율</div>"
+                                    f"<div style='font-weight:700;color:#1a3a5c;'>{row['Engagement_Rate']}%</div></div>"
+                                    f"<div style='flex:1;background:#f8f9fa;border-radius:8px;"
+                                    f"padding:0.4rem;text-align:center;'>"
+                                    f"<div style='color:#888;font-size:0.7rem;'>협업</div>"
+                                    f"<div style='font-weight:700;color:#1a3a5c;'>{n_collab}회</div></div>"
+                                    f"<div style='flex:1;background:#f8f9fa;border-radius:8px;"
+                                    f"padding:0.4rem;text-align:center;'>"
+                                    f"<div style='color:#888;font-size:0.7rem;'>Risk</div>"
+                                    f"<div style='font-weight:700;color:#1a3a5c;'>{row['Risk_Score']}</div></div></div>"
+                                    f"<div>{tags_html}</div>"
+                                    f"</div>"
+                                )
+                                st.markdown(card_html, unsafe_allow_html=True)
+                                with st.expander("📊 상세 분석"):
+                                    st.plotly_chart(plotly_score_bar(row),
+                                                    use_container_width=True,
+                                                    config={'displayModeBar': False})
+                                    past = collabs[collabs['Creator_ID'] == c_id][
+                                        ['Brand_ID', 'CTR', 'CVR', 'is_success']
+                                    ].copy()
+                                    if not past.empty:
+                                        past['브랜드'] = past['Brand_ID'].map(brand_name_map)
+                                        past['성공']   = past['is_success'].map({'Y': '✅', 'N': '❌'})
+                                        st.caption("과거 협업 성과")
+                                        st.dataframe(
+                                            past[['브랜드', 'CTR', 'CVR', '성공']].head(5),
+                                            use_container_width=True, hide_index=True
+                                        )
 
             # ③ 매칭 점수 분포
             st.markdown("<div class='section-title'>③ 매칭 점수 분포</div>",
