@@ -5,6 +5,8 @@ import sqlite3
 import os
 import warnings
 warnings.filterwarnings('ignore')
+import plotly.graph_objects as go
+import plotly.express as px
 
 from recommendation_logic import build_similarity, recommend, grade_label
 from db_setup import (
@@ -14,19 +16,82 @@ from db_setup import (
     DB_PATH,
 )
 
-st.set_page_config(page_title="기업-크리에이터 매칭 추천 시스템", layout="wide")
+st.set_page_config(
+    page_title="기업-크리에이터 매칭 추천 시스템",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-GRADE_COLOR = {"A": "#1a7a4a", "B": "#2d6a9f", "C": "#b07c00", "D": "#c0392b"}
-GRADE_BG    = {"A": "#e8f7ef", "B": "#e8f0fb", "C": "#fdf6e3", "D": "#fdecea"}
+# ── 디자인 시스템 ─────────────────────────────────────────────────────────────
+GRADE_COLOR  = {"A": "#1a7a4a", "B": "#2d6a9f", "C": "#b07c00", "D": "#c0392b"}
+GRADE_BG     = {"A": "#e8f7ef", "B": "#e8f0fb", "C": "#fdf6e3", "D": "#fdecea"}
+GRADE_BORDER = {"A": "#a3d9b8", "B": "#a3c0e8", "C": "#e8d5a0", "D": "#f0a8a0"}
+GRADE_LABEL  = {"A": "강력 추천", "B": "추천", "C": "보통", "D": "참고"}
+RANK_MEDAL   = {1: "🥇", 2: "🥈", 3: "🥉"}
+PLOTLY_COLORS = ["#2d6a9f", "#1a7a4a", "#b07c00", "#c0392b", "#8e44ad", "#16a085"]
 
-# creator.db 없으면 CSV에서 자동 생성
+# ── 전역 CSS ──────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+/* 탭 스타일 */
+.stTabs [data-baseweb="tab-list"] { gap: 8px; }
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px 8px 0 0;
+    padding: 0.5rem 1.2rem;
+    font-weight: 600;
+}
+/* 카드 hover */
+.creator-card {
+    border: 1px solid #e0e8f0;
+    border-radius: 14px;
+    padding: 1.4rem 1.2rem;
+    background: white;
+    transition: box-shadow 0.2s, transform 0.2s;
+    height: 100%;
+}
+.creator-card:hover {
+    box-shadow: 0 6px 24px rgba(45,106,159,0.13);
+    transform: translateY(-2px);
+}
+/* KPI 카드 */
+.kpi-card {
+    background: white;
+    border: 1px solid #e0e8f0;
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    text-align: center;
+}
+.kpi-value { font-size: 2rem; font-weight: 800; color: #1a3a5c; }
+.kpi-label { font-size: 0.82rem; color: #888; margin-top: 0.2rem; }
+/* 섹션 헤더 */
+.section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1a3a5c;
+    margin: 1.2rem 0 0.6rem;
+    padding-left: 0.6rem;
+    border-left: 3px solid #2d6a9f;
+}
+/* 사유 태그 */
+.reason-tag {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin: 0.1rem 0.1rem 0 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ── creator.db 초기화 ─────────────────────────────────────────────────────────
 if not os.path.exists(DB_PATH):
     with st.spinner("creator.db 초기화 중... (최초 1회)"):
         setup_db()
 
-# ── 데이터 로드 (SQLite) ─────────────────────────────────────────────────────
+# ── 데이터 로드 ───────────────────────────────────────────────────────────────
 @st.cache_data
 def load_data():
     conn = get_conn()
@@ -45,16 +110,8 @@ def load_collab_stats():
     cnt_df  = pd.read_sql(SQL_COLLAB_COUNT,   conn)
     succ_df = pd.read_sql(SQL_COLLAB_SUCCESS, conn)
     conn.close()
-    collab_count   = dict(zip(cnt_df['Creator_ID'],  cnt_df['cnt']))
-    collab_success = dict(zip(succ_df['Creator_ID'], succ_df['cnt']))
-    return collab_count, collab_success
-
-def reload_collabs():
-    """성과 저장 후 캠페인 데이터만 새로 읽기."""
-    conn = get_conn()
-    df = pd.read_sql(SQL_CAMPAIGNS, conn)
-    conn.close()
-    return df
+    return (dict(zip(cnt_df['Creator_ID'],  cnt_df['cnt'])),
+            dict(zip(succ_df['Creator_ID'], succ_df['cnt'])))
 
 build_similarity_cached = st.cache_data(build_similarity)
 
@@ -63,24 +120,76 @@ creators, brands, collabs, ratings, similarity_df = load_data()
 if similarity_df is None:
     with st.spinner("추천 점수를 계산 중입니다... (최초 1회)"):
         similarity_df = build_similarity_cached(creators, brands, ratings)
-        save_similarity(similarity_df)   # P1-SQL2: CreatorSimilarity에 INSERT
+        save_similarity(similarity_df)
 
-# ── 협업 이력 카운트 (SQLite 집계) ───────────────────────────────────────────
 collab_count, collab_success = load_collab_stats()
 max_followers = creators['Followers'].max()
+name_map_c  = dict(zip(creators['Creator_ID'], creators['Channel_Name']))
+brand_name_map = dict(zip(brands['Brand_ID'], brands['Brand_Name']))
 
-# ── 헤더 ─────────────────────────────────────────────────────────────────────
+# ── 헬퍼 함수 ─────────────────────────────────────────────────────────────────
+def fmt_followers(n):
+    if n >= 100_000_000: return f"{n/100_000_000:.1f}억"
+    if n >= 10_000:      return f"{n/10_000:.1f}만"
+    return f"{n:,}"
+
+def build_reasons(row, brand_row):
+    pos, neg = [], []
+    if row['category_score'] >= 1.0:   pos.append("카테고리 일치")
+    elif row['category_score'] > 0:    pos.append("카테고리 유사")
+    else:                              neg.append("카테고리 불일치")
+    if row['context_score'] >= 0.5:    pos.append("오디언스 적합")
+    elif row['context_score'] < 0.25:  neg.append("오디언스 미스매칭")
+    if row['Engagement_Rate'] >= 5.0:  pos.append("높은 참여율")
+    elif row['Engagement_Rate'] < 2.0: neg.append("낮은 참여율")
+    if row['cf_score'] > 0:            pos.append("협업 이력 반영")
+    return pos, neg
+
+def reason_tags_html(pos, neg):
+    tags = "".join(
+        f"<span class='reason-tag' style='background:#e8f7ef;color:#1a7a4a;'>✔ {r}</span>"
+        for r in pos
+    )
+    tags += "".join(
+        f"<span class='reason-tag' style='background:#fdecea;color:#c0392b;'>✖ {r}</span>"
+        for r in neg
+    )
+    return tags
+
+def plotly_score_bar(row):
+    labels = ['카테고리(CBF)', '조건매칭(CBF)', '협업필터링(CF)']
+    values = [row['category_score'], row['context_score'], row['cf_score']]
+    colors = ['#2d6a9f', '#1a7a4a', '#b07c00']
+    fig = go.Figure(go.Bar(
+        x=values, y=labels, orientation='h',
+        marker_color=colors,
+        text=[f"{v:.2f}" for v in values],
+        textposition='outside',
+    ))
+    fig.update_layout(
+        height=180, margin=dict(l=0, r=40, t=10, b=10),
+        xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
+        yaxis=dict(showgrid=False),
+        plot_bgcolor='white', paper_bgcolor='white',
+        font=dict(size=11),
+    )
+    return fig
+
+# ── 헤더 ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style='background: linear-gradient(135deg, #1a3a5c 0%, #2d6a9f 100%);
-            padding: 2rem 2.5rem; border-radius: 12px; margin-bottom: 1.5rem;'>
-    <h1 style='color: white; margin: 0; font-size: 1.8rem;'>기업-크리에이터 매칭 추천 시스템</h1>
-    <p style='color: #a8c8e8; margin: 0.3rem 0 0; font-size: 0.95rem;'>
-        KAIST BIZ | 비즈니스 애널리틱스 | CBF + CF 하이브리드 추천
+            padding: 2rem 2.5rem; border-radius: 14px; margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(26,58,92,0.18);'>
+    <h1 style='color: white; margin: 0; font-size: 1.9rem; letter-spacing:-0.5px;'>
+        기업-크리에이터 매칭 추천 시스템
+    </h1>
+    <p style='color: #a8c8e8; margin: 0.4rem 0 0; font-size: 0.9rem;'>
+        KAIST BIZ &nbsp;|&nbsp; 비즈니스 애널리틱스 2026 &nbsp;|&nbsp; CBF + CF 하이브리드 추천
     </p>
 </div>
 """, unsafe_allow_html=True)
 
-# ── 메인 탭 ──────────────────────────────────────────────────────────────────
+# ── 메인 탭 ───────────────────────────────────────────────────────────────────
 tab_match, tab_explore, tab_dashboard = st.tabs([
     "🎯 브랜드 매칭", "🔍 크리에이터 탐색", "📊 성과 대시보드"
 ])
@@ -91,11 +200,10 @@ tab_match, tab_explore, tab_dashboard = st.tabs([
 # ════════════════════════════════════════════════════════════════════════════
 with tab_match:
 
-    # ── ① 브랜드 조건 입력 ────────────────────────────────────────────────
-    st.subheader("① 브랜드 조건 입력")
+    # ① 브랜드 조건 입력
+    st.markdown("<div class='section-title'>① 브랜드 조건 입력</div>", unsafe_allow_html=True)
     with st.container(border=True):
         col1, col2, col3 = st.columns(3)
-
         with col1:
             brand_options = brands[['Brand_ID', 'Brand_Name', 'Industry']].copy()
             brand_display = brand_options.apply(
@@ -103,20 +211,19 @@ with tab_match:
             ).tolist()
             selected_idx = st.selectbox("브랜드 선택", range(len(brand_display)),
                                         format_func=lambda i: brand_display[i])
-            selected_brand = brand_options.iloc[selected_idx]
-            brand_id = selected_brand['Brand_ID']
+            brand_id  = brand_options.iloc[selected_idx]['Brand_ID']
+            brand_row = brands[brands['Brand_ID'] == brand_id].iloc[0]
 
         with col2:
-            risk_threshold = st.slider("최소 Risk Score 기준", 1.0, 5.0, 2.5, 0.5,
-                                       help="이 값 미만의 크리에이터는 추천에서 제외됩니다")
-
+            risk_threshold = st.slider("최소 Risk Score", 1.0, 5.0, 2.5, 0.5,
+                                       help="이 값 미만 크리에이터는 자동 제외")
         with col3:
             top_n = st.slider("추천 크리에이터 수", 1, 10, 3)
 
-        brand_row = brands[brands['Brand_ID'] == brand_id].iloc[0]
         st.markdown(f"""
-        <div style='background:#f0f4f8; border-radius:8px; padding:0.8rem 1rem; margin-top:0.5rem;
-                    display:flex; gap:2rem; flex-wrap:wrap; font-size:0.88rem; color:#444;'>
+        <div style='background:linear-gradient(90deg,#f0f4f8,#e8f0fb);
+                    border-radius:10px; padding:0.8rem 1.2rem; margin-top:0.4rem;
+                    display:flex; gap:2rem; flex-wrap:wrap; font-size:0.87rem; color:#444;'>
             <span>🏢 <b>{brand_row['Brand_Name']}</b></span>
             <span>🏷️ {brand_row['Industry']}</span>
             <span>💰 월 예산 {brand_row['Monthly_Budget']:,}원</span>
@@ -125,14 +232,16 @@ with tab_match:
         </div>
         """, unsafe_allow_html=True)
 
-        run = st.button("추천 받기", type="primary", use_container_width=True)
+        run = st.button("🔍 추천 받기", type="primary", use_container_width=True)
 
-    # ── ② 추천 결과 ────────────────────────────────────────────────────────
+    # ② 추천 결과
     if run or 'last_brand_id' in st.session_state:
         if run:
-            st.session_state['last_brand_id']       = brand_id
-            st.session_state['last_risk_threshold'] = risk_threshold
-            st.session_state['last_top_n']          = top_n
+            st.session_state.update({
+                'last_brand_id':       brand_id,
+                'last_risk_threshold': risk_threshold,
+                'last_top_n':          top_n,
+            })
 
         brand_id       = st.session_state['last_brand_id']
         risk_threshold = st.session_state['last_risk_threshold']
@@ -141,12 +250,11 @@ with tab_match:
 
         top_df = recommend(brand_id, similarity_df, creators, risk_threshold, top_n)
 
-        st.subheader("② 추천 결과")
+        st.markdown("<div class='section-title'>② 추천 결과</div>", unsafe_allow_html=True)
 
         if top_df.empty:
             st.warning("조건을 만족하는 크리에이터가 없습니다. Risk Score 기준을 낮춰보세요.")
         else:
-            # 카테고리 필터 탭 ──────────────────────────────────────────────
             all_cats = ["전체"] + sorted(top_df['Category'].unique().tolist())
             cat_tabs = st.tabs(all_cats)
 
@@ -154,157 +262,206 @@ with tab_match:
                 with cat_tab:
                     filtered = top_df if cat_label == "전체" \
                                else top_df[top_df['Category'] == cat_label]
-
                     if filtered.empty:
                         st.info("해당 카테고리의 추천 결과가 없습니다.")
                         continue
 
                     cols = st.columns(len(filtered))
                     for col, (_, row) in zip(cols, filtered.iterrows()):
-                        grade = row.get('recommendation_grade', grade_label(row['matching_score']))
-                        color = GRADE_COLOR.get(grade, "#888")
-                        bg    = GRADE_BG.get(grade, "#f9f9f9")
+                        grade  = row.get('recommendation_grade', grade_label(row['matching_score']))
+                        color  = GRADE_COLOR[grade]
+                        bg     = GRADE_BG[grade]
+                        border = GRADE_BORDER[grade]
+                        medal  = RANK_MEDAL.get(int(row['Rank']), f"{int(row['Rank'])}위")
 
-                        reasons = []
-                        if row['category_score'] >= 1.0:
-                            reasons.append("카테고리 일치")
-                        elif row['category_score'] > 0:
-                            reasons.append("카테고리 유사")
-                        if row['context_score'] >= 0.5:
-                            reasons.append("오디언스 적합")
-                        if row['Engagement_Rate'] >= 5.0:
-                            reasons.append("높은 참여율")
-                        if row['cf_score'] > 0:
-                            reasons.append("협업 이력 반영")
+                        pos_reasons, neg_reasons = build_reasons(row, brand_row)
+                        tags_html = reason_tags_html(pos_reasons, neg_reasons)
 
-                        followers = row['Followers']
-                        followers_str = f"{followers/10000:.1f}만" if followers >= 10000 \
-                                        else f"{followers:,}"
-                        follow_pct = min(int(followers / max_followers * 100), 100)
-
-                        c_id = row['Creator_ID']
+                        c_id       = row['Creator_ID']
                         n_collab   = collab_count.get(c_id, 0)
                         n_success  = collab_success.get(c_id, 0)
-                        badge_html = f"<span style='background:#e8f0fb; color:#2d6a9f; " \
-                                     f"border-radius:12px; padding:0.1rem 0.5rem; " \
-                                     f"font-size:0.75rem; font-weight:600;'>" \
-                                     f"협업 {n_collab}회</span>" if n_collab > 0 else ""
+                        follow_pct = min(int(row['Followers'] / max_followers * 100), 100)
+                        score_pct  = int(row['matching_score'] * 100)
 
                         with col:
                             st.markdown(f"""
-                            <div style='border:1px solid #dde3ec; border-radius:10px;
-                                        padding:1.2rem; background:white;'>
-                                <div style='font-size:0.8rem; color:#888; margin-bottom:0.2rem;'>
-                                    {row['Rank']}위 &nbsp; {badge_html}
+                            <div class='creator-card' style='border-color:{border};
+                                         border-top: 3px solid {color};'>
+                                <div style='display:flex; justify-content:space-between;
+                                            align-items:center; margin-bottom:0.5rem;'>
+                                    <span style='font-size:1.5rem;'>{medal}</span>
+                                    <span style='background:{bg}; color:{color};
+                                                 border-radius:20px; padding:0.15rem 0.6rem;
+                                                 font-size:0.75rem; font-weight:700;'>
+                                        {GRADE_LABEL[grade]}
+                                    </span>
                                 </div>
-                                <div style='font-size:1.05rem; font-weight:700; color:#1a3a5c;
-                                            margin-bottom:0.4rem;'>
+                                <div style='font-size:1.1rem; font-weight:800; color:#1a3a5c;
+                                            margin-bottom:0.3rem; letter-spacing:-0.3px;'>
                                     {row['Channel_Name']}
                                 </div>
-                                <div style='display:inline-block; background:{color};
-                                            color:white; border-radius:20px;
-                                            padding:0.2rem 0.8rem; font-size:0.95rem;
-                                            font-weight:700; margin-bottom:0.6rem;'>
-                                    {row['matching_score']:.2f}점 &nbsp; 등급 {grade}
+                                <div style='font-size:0.82rem; color:#888; margin-bottom:0.8rem;'>
+                                    {row['Platform']} &nbsp;·&nbsp; {row['Category']}
                                 </div>
-                                <div style='background:#f5f5f5; border-radius:6px;
-                                            height:6px; margin-bottom:0.7rem;'>
-                                    <div style='background:{color}; height:6px; border-radius:6px;
-                                                width:{int(row["matching_score"]*100)}%;'></div>
+
+                                <!-- 매칭 점수 게이지 -->
+                                <div style='margin-bottom:0.8rem;'>
+                                    <div style='display:flex; justify-content:space-between;
+                                                font-size:0.78rem; color:#666; margin-bottom:0.3rem;'>
+                                        <span>매칭 점수</span>
+                                        <span style='font-weight:700; color:{color};'>
+                                            {row['matching_score']:.2f} &nbsp; 등급 {grade}
+                                        </span>
+                                    </div>
+                                    <div style='background:#f0f0f0; border-radius:6px; height:8px;'>
+                                        <div style='background:linear-gradient(90deg,{color}88,{color});
+                                                    height:8px; border-radius:6px;
+                                                    width:{score_pct}%;'></div>
+                                    </div>
                                 </div>
-                                <div style='font-size:0.8rem; color:#555; line-height:1.8;
-                                            margin-bottom:0.6rem; text-align:left;'>
-                                    {"".join(f"✔ {r}<br>" for r in reasons)}
+
+                                <!-- 구독자 게이지 -->
+                                <div style='margin-bottom:0.8rem;'>
+                                    <div style='display:flex; justify-content:space-between;
+                                                font-size:0.78rem; color:#666; margin-bottom:0.3rem;'>
+                                        <span>👥 구독자</span>
+                                        <span style='font-weight:600;'>
+                                            {fmt_followers(row['Followers'])}
+                                        </span>
+                                    </div>
+                                    <div style='background:#f0f0f0; border-radius:6px; height:6px;'>
+                                        <div style='background:#a3c0e8; height:6px; border-radius:6px;
+                                                    width:{follow_pct}%;'></div>
+                                    </div>
                                 </div>
-                                <hr style='border:none; border-top:1px solid #eee; margin:0.4rem 0;'>
-                                <div style='font-size:0.8rem; color:#555; text-align:left;
-                                            line-height:1.9;'>
-                                    📱 {row['Platform']}<br>
-                                    🏷️ {row['Category']}<br>
-                                    👥 구독자 {followers_str}<br>
+
+                                <!-- 지표 -->
+                                <div style='display:flex; gap:0.6rem; margin-bottom:0.8rem;
+                                            font-size:0.78rem;'>
+                                    <div style='flex:1; background:#f8f9fa; border-radius:8px;
+                                                padding:0.4rem; text-align:center;'>
+                                        <div style='color:#888; font-size:0.7rem;'>참여율</div>
+                                        <div style='font-weight:700; color:#1a3a5c;'>
+                                            {row['Engagement_Rate']}%
+                                        </div>
+                                    </div>
+                                    <div style='flex:1; background:#f8f9fa; border-radius:8px;
+                                                padding:0.4rem; text-align:center;'>
+                                        <div style='color:#888; font-size:0.7rem;'>협업</div>
+                                        <div style='font-weight:700; color:#1a3a5c;'>
+                                            {n_collab}회
+                                        </div>
+                                    </div>
+                                    <div style='flex:1; background:#f8f9fa; border-radius:8px;
+                                                padding:0.4rem; text-align:center;'>
+                                        <div style='color:#888; font-size:0.7rem;'>Risk</div>
+                                        <div style='font-weight:700; color:#1a3a5c;'>
+                                            {row['Risk_Score']}
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <!-- 추천 사유 태그 -->
+                                <div>{tags_html}</div>
                             </div>
                             """, unsafe_allow_html=True)
 
-                            # 구독자 규모 progress bar
-                            st.progress(follow_pct, text=f"구독자 규모 상위 {100-follow_pct}%")
+                            with st.expander("📊 상세 분석"):
+                                st.plotly_chart(plotly_score_bar(row),
+                                                use_container_width=True,
+                                                config={'displayModeBar': False})
 
-                            # 크리에이터 상세 expander (유하 스타일)
-                            with st.expander("상세 정보 보기"):
-                                d1, d2, d3 = st.columns(3)
-                                d1.metric("참여율", f"{row['Engagement_Rate']}%")
-                                d2.metric("Risk Score", f"{row['Risk_Score']}")
-                                d3.metric("성공 협업", f"{n_success}회")
-
-                                st.markdown("**점수 구성**")
-                                score_data = pd.DataFrame({
-                                    '항목': ['카테고리(CBF)', '조건매칭(CBF)', '협업필터링(CF)'],
-                                    '점수': [row['category_score'],
-                                             row['context_score'],
-                                             row['cf_score']],
-                                })
-                                st.bar_chart(score_data.set_index('항목'))
-
-                                # 이 크리에이터의 과거 협업 성과
                                 past = collabs[collabs['Creator_ID'] == c_id][
                                     ['Brand_ID', 'CTR', 'CVR', 'is_success']
                                 ].copy()
                                 if not past.empty:
-                                    brand_name_map = dict(zip(brands['Brand_ID'], brands['Brand_Name']))
                                     past['브랜드'] = past['Brand_ID'].map(brand_name_map)
-                                    past['성공'] = past['is_success'].map({'Y': '✅', 'N': '❌'})
-                                    st.markdown("**과거 협업 성과**")
+                                    past['성공']   = past['is_success'].map({'Y': '✅', 'N': '❌'})
+                                    st.caption("과거 협업 성과")
                                     st.dataframe(
                                         past[['브랜드', 'CTR', 'CVR', '성공']].head(5),
                                         use_container_width=True, hide_index=True
                                     )
 
-            # ── ③ 점수 분포 차트 (썸트렌드 스타일) ──────────────────────────
-            st.subheader("③ 매칭 점수 분포")
+            # ③ 매칭 점수 분포
+            st.markdown("<div class='section-title'>③ 매칭 점수 분포</div>",
+                        unsafe_allow_html=True)
             with st.container(border=True):
                 brand_scores = similarity_df[similarity_df['Brand_ID'] == brand_id].copy()
                 risk_map_all = dict(zip(creators['Creator_ID'], creators['Risk_Score']))
                 brand_scores['Risk_Score'] = brand_scores['Creator_ID'].map(risk_map_all)
                 brand_scores = brand_scores[brand_scores['Risk_Score'] >= risk_threshold]
 
-                hist_data = pd.cut(
-                    brand_scores['matching_score'],
-                    bins=[0, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-                    labels=['~0.4', '0.4~0.5', '0.5~0.6', '0.6~0.7', '0.7~0.8', '0.8~0.9', '0.9~']
-                ).value_counts().sort_index()
+                bins   = [0, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+                labels = ['~0.4', '0.4~0.5', '0.5~0.6', '0.6~0.7',
+                          '0.7~0.8', '0.8~0.9', '0.9~']
+                bin_colors = ['#e8e8e8','#d0d0d0','#b0c8d8','#8aabcc',
+                              '#b07c00','#2d6a9f','#1a7a4a']
+                hist_data = pd.cut(brand_scores['matching_score'],
+                                   bins=bins, labels=labels).value_counts().sort_index()
+
+                fig_hist = go.Figure(go.Bar(
+                    x=hist_data.index.tolist(),
+                    y=hist_data.values,
+                    marker_color=bin_colors,
+                    text=hist_data.values,
+                    textposition='outside',
+                ))
+                fig_hist.update_layout(
+                    height=260, margin=dict(l=0, r=0, t=20, b=0),
+                    plot_bgcolor='white', paper_bgcolor='white',
+                    yaxis=dict(showgrid=True, gridcolor='#f0f0f0'),
+                    xaxis=dict(showgrid=False),
+                    font=dict(size=12),
+                )
+                # 추천된 크리에이터 범위 표시
+                top_ids = top_df['Creator_ID'].tolist()
+                top_min = brand_scores[brand_scores['Creator_ID'].isin(top_ids)]['matching_score'].min()
+                fig_hist.add_vrect(
+                    x0=top_min - 0.05, x1=1.0, fillcolor="#2d6a9f", opacity=0.07,
+                    layer="below", line_width=0,
+                    annotation_text="추천 범위", annotation_position="top left",
+                )
 
                 col_chart, col_info = st.columns([2, 1])
                 with col_chart:
-                    st.bar_chart(hist_data, color="#2d6a9f")
+                    st.plotly_chart(fig_hist, use_container_width=True,
+                                    config={'displayModeBar': False})
                 with col_info:
-                    st.markdown("**현재 브랜드 추천 현황**")
+                    st.markdown("**등급별 현황**")
                     total = len(brand_scores)
-                    for g, thr in [("A", 0.9), ("B", 0.8), ("C", 0.7), ("D", 0.0)]:
-                        upper = 1.1 if g == "A" else (0.9 if g == "B" else (0.8 if g == "C" else 0.7))
-                        cnt = ((brand_scores['matching_score'] >= thr) &
-                               (brand_scores['matching_score'] < upper)).sum()
+                    grade_ranges = [("A", 0.9, 1.1), ("B", 0.8, 0.9),
+                                    ("C", 0.7, 0.8), ("D", 0.0, 0.7)]
+                    for g, lo, hi in grade_ranges:
+                        cnt = ((brand_scores['matching_score'] >= lo) &
+                               (brand_scores['matching_score'] < hi)).sum()
                         pct = cnt / total * 100 if total > 0 else 0
-                        st.markdown(
-                            f"<span style='color:{GRADE_COLOR[g]}; font-weight:700;'>등급 {g}</span>"
-                            f" &nbsp; {cnt}명 ({pct:.1f}%)",
-                            unsafe_allow_html=True
-                        )
-                    top_ids = top_df['Creator_ID'].tolist()
-                    top_scores = brand_scores[brand_scores['Creator_ID'].isin(top_ids)]
-                    st.markdown(f"\n**추천된 크리에이터**: "
-                                f"점수 {top_scores['matching_score'].min():.2f} ~ "
-                                f"{top_scores['matching_score'].max():.2f}")
+                        bar_w = int(pct)
+                        st.markdown(f"""
+                        <div style='margin-bottom:0.5rem;'>
+                            <div style='display:flex; justify-content:space-between;
+                                        font-size:0.82rem; margin-bottom:0.2rem;'>
+                                <span style='color:{GRADE_COLOR[g]};font-weight:700;'>
+                                    등급 {g}
+                                </span>
+                                <span style='color:#555;'>{cnt}명 ({pct:.0f}%)</span>
+                            </div>
+                            <div style='background:#f0f0f0;border-radius:4px;height:5px;'>
+                                <div style='background:{GRADE_COLOR[g]};height:5px;
+                                            border-radius:4px;width:{bar_w}%;'></div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-            # ── ④ 유사 협업 사례 (SQL_SIMILAR_CASES 쿼리) ──────────────────
-            st.subheader("④ 유사 협업 사례")
-            brand_industry  = brand_row['Industry']
+            # ④ 유사 협업 사례
+            st.markdown("<div class='section-title'>④ 유사 협업 사례</div>",
+                        unsafe_allow_html=True)
             top_creator_ids = top_df['Creator_ID'].tolist()
             placeholders    = ','.join('?' * len(top_creator_ids))
             conn = get_conn()
             cases = pd.read_sql(
                 SQL_SIMILAR_CASES.format(placeholders=placeholders),
-                conn,
-                params=[brand_industry] + top_creator_ids,
+                conn, params=[brand_row['Industry']] + top_creator_ids,
             )
             conn.close()
 
@@ -316,72 +473,96 @@ with tab_match:
                         icon = "✅" if c['is_success'] == 'Y' else "❌"
                         st.markdown(
                             f"{icon} **{c['Brand_Name']}** + **{c['Creator_Name']}** → "
-                            f"예산 {c['Budget_Spent']:,}원 | "
-                            f"노출 {c['Impressions']:,}회 | "
-                            f"CTR {c['CTR']}% | CVR {c['CVR']}%"
+                            f"노출 {c['Impressions']:,}회 &nbsp;|&nbsp; "
+                            f"CTR **{c['CTR']}%** &nbsp;|&nbsp; CVR **{c['CVR']}%**"
                         )
 
-            # ── ⑤ 같은 업종 브랜드 비교 (썸트렌드 스타일) ───────────────────
-            st.subheader("⑤ 같은 업종 브랜드 비교")
+            # ⑤ 같은 업종 브랜드 비교
+            st.markdown("<div class='section-title'>⑤ 같은 업종 브랜드 비교</div>",
+                        unsafe_allow_html=True)
             with st.container(border=True):
                 compare_brands = brands[
-                    (brands['Industry'] == brand_industry) &
+                    (brands['Industry'] == brand_row['Industry']) &
                     (brands['Brand_ID'] != brand_id)
                 ].head(4)
 
-                if compare_brands.empty:
-                    st.info("비교할 동일 업종 브랜드가 없습니다.")
-                else:
-                    comp_rows = []
-                    for _, br in compare_brands.iterrows():
-                        br_scores = similarity_df[similarity_df['Brand_ID'] == br['Brand_ID']]
-                        avg = br_scores['matching_score'].mean()
-                        top1 = br_scores.nlargest(1, 'matching_score')
-                        top1_name = ""
-                        if not top1.empty:
-                            cid = top1.iloc[0]['Creator_ID']
-                            top1_name = name_map_c.get(cid, cid)
-                        comp_rows.append({
-                            '브랜드': br['Brand_Name'],
-                            '평균 매칭점수': round(avg, 3),
-                            'Top 크리에이터': top1_name,
-                        })
-
-                    # 현재 브랜드도 포함
-                    cur_scores = similarity_df[similarity_df['Brand_ID'] == brand_id]
-                    cur_avg = cur_scores['matching_score'].mean()
-                    cur_top1_id = cur_scores.nlargest(1, 'matching_score').iloc[0]['Creator_ID'] \
-                        if not cur_scores.empty else ""
-                    comp_rows.insert(0, {
-                        '브랜드': f"⭐ {brand_row['Brand_Name']} (현재)",
-                        '평균 매칭점수': round(cur_avg, 3),
-                        'Top 크리에이터': name_map_c.get(cur_top1_id, ""),
+                comp_rows = []
+                # 현재 브랜드
+                cur_sc  = similarity_df[similarity_df['Brand_ID'] == brand_id]
+                cur_avg = cur_sc['matching_score'].mean()
+                cur_top = cur_sc.nlargest(1, 'matching_score')
+                cur_top_name = name_map_c.get(
+                    cur_top.iloc[0]['Creator_ID'], "") if not cur_top.empty else ""
+                comp_rows.append({
+                    '브랜드': f"⭐ {brand_row['Brand_Name']}",
+                    '평균 매칭점수': round(cur_avg, 3),
+                    'Top 크리에이터': cur_top_name,
+                    '_current': True,
+                })
+                for _, br in compare_brands.iterrows():
+                    br_sc = similarity_df[similarity_df['Brand_ID'] == br['Brand_ID']]
+                    avg   = br_sc['matching_score'].mean()
+                    top1  = br_sc.nlargest(1, 'matching_score')
+                    top1_name = name_map_c.get(
+                        top1.iloc[0]['Creator_ID'], "") if not top1.empty else ""
+                    comp_rows.append({
+                        '브랜드': br['Brand_Name'],
+                        '평균 매칭점수': round(avg, 3),
+                        'Top 크리에이터': top1_name,
+                        '_current': False,
                     })
 
-                    comp_df = pd.DataFrame(comp_rows)
-                    st.dataframe(comp_df, use_container_width=True, hide_index=True)
-                    st.bar_chart(comp_df.set_index('브랜드')['평균 매칭점수'], color="#2d6a9f")
+                comp_df = pd.DataFrame(comp_rows)
+                bar_colors = [
+                    "#2d6a9f" if r else "#b0c8d8"
+                    for r in comp_df['_current']
+                ]
+                fig_comp = go.Figure(go.Bar(
+                    x=comp_df['브랜드'],
+                    y=comp_df['평균 매칭점수'],
+                    marker_color=bar_colors,
+                    text=[f"{v:.3f}" for v in comp_df['평균 매칭점수']],
+                    textposition='outside',
+                ))
+                fig_comp.update_layout(
+                    height=280, margin=dict(l=0, r=0, t=20, b=0),
+                    plot_bgcolor='white', paper_bgcolor='white',
+                    yaxis=dict(range=[0, 1.0], showgrid=True, gridcolor='#f0f0f0'),
+                    xaxis=dict(showgrid=False),
+                    font=dict(size=12),
+                )
+                col_c1, col_c2 = st.columns([2, 1])
+                with col_c1:
+                    st.plotly_chart(fig_comp, use_container_width=True,
+                                    config={'displayModeBar': False})
+                with col_c2:
+                    st.dataframe(
+                        comp_df[['브랜드', '평균 매칭점수', 'Top 크리에이터']],
+                        use_container_width=True, hide_index=True
+                    )
 
-            # ── ⑥ 캠페인 성과 입력 ──────────────────────────────────────────
-            st.subheader("⑥ 캠페인 성과 입력")
+            # ⑥ 캠페인 성과 입력
+            st.markdown("<div class='section-title'>⑥ 캠페인 성과 입력</div>",
+                        unsafe_allow_html=True)
             with st.container(border=True):
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     creator_options = top_df.apply(
-                        lambda r: f"{r['Rank']}위 {r['Channel_Name']}", axis=1
+                        lambda r: f"{RANK_MEDAL.get(int(r['Rank']),str(int(r['Rank']))+'위')} "
+                                  f"{r['Channel_Name']}", axis=1
                     ).tolist()
                     sel_label = st.selectbox("크리에이터 선택", creator_options)
-                    sel_idx   = int(sel_label.split("위")[0]) - 1
+                    sel_idx   = creator_options.index(sel_label)
                     sel_cid   = top_df.iloc[sel_idx]['Creator_ID']
                 with col2:
                     impressions_input = st.number_input("실제 노출수", min_value=0, step=1000)
                 with col3:
-                    ctr_input = st.number_input("CTR (%)", min_value=0.0, max_value=100.0,
-                                                step=0.1, format="%.2f")
+                    ctr_input = st.number_input("CTR (%)", min_value=0.0,
+                                                max_value=100.0, step=0.1, format="%.2f")
                 with col4:
                     success_input = st.selectbox("성공 여부", ["Y", "N"])
 
-                if st.button("성과 저장", type="secondary", use_container_width=True):
+                if st.button("💾 성과 저장", type="secondary", use_container_width=True):
                     new_row = {
                         'Collab_ID':      f"CB_NEW_{pd.Timestamp.now().strftime('%Y%m%d%H%M%S')}",
                         'Brand_ID':       brand_id,
@@ -396,187 +577,249 @@ with tab_match:
                         'CVR':            0,
                         'is_success':     success_input,
                     }
-                    save_campaign(new_row)   # P2-SQL1: Campaign 테이블에 INSERT
+                    save_campaign(new_row)
                     st.success(f"성과가 저장되었습니다! ({new_row['Collab_ID']})")
                     st.cache_data.clear()
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# TAB 2: 크리에이터 탐색 (역방향 — 유하 스타일)
+# TAB 2: 크리에이터 탐색
 # ════════════════════════════════════════════════════════════════════════════
 with tab_explore:
-    st.subheader("크리에이터 → 맞는 브랜드 탐색")
+    st.markdown("<div class='section-title'>크리에이터 → 맞는 브랜드 탐색</div>",
+                unsafe_allow_html=True)
     st.caption("크리에이터 관점에서 협업 가능성이 높은 브랜드를 역방향으로 조회합니다.")
 
     with st.container(border=True):
         ecol1, ecol2, ecol3 = st.columns(3)
         with ecol1:
-            cat_filter = st.selectbox("카테고리 필터",
-                                      ["전체"] + sorted(creators['Category'].unique().tolist()))
+            cat_filter = st.selectbox(
+                "카테고리", ["전체"] + sorted(creators['Category'].unique().tolist()))
         with ecol2:
-            plat_filter = st.selectbox("플랫폼 필터",
-                                       ["전체"] + sorted(creators['Platform'].unique().tolist()))
+            plat_filter = st.selectbox(
+                "플랫폼", ["전체"] + sorted(creators['Platform'].unique().tolist()))
         with ecol3:
             min_risk = st.slider("최소 Risk Score", 1.0, 5.0, 2.5, 0.5)
 
-    filtered_creators = creators.copy()
-    if cat_filter != "전체":
-        filtered_creators = filtered_creators[filtered_creators['Category'] == cat_filter]
-    if plat_filter != "전체":
-        filtered_creators = filtered_creators[filtered_creators['Platform'] == plat_filter]
-    filtered_creators = filtered_creators[filtered_creators['Risk_Score'] >= min_risk]
+    fc = creators.copy()
+    if cat_filter  != "전체": fc = fc[fc['Category'] == cat_filter]
+    if plat_filter != "전체": fc = fc[fc['Platform']  == plat_filter]
+    fc = fc[fc['Risk_Score'] >= min_risk]
 
-    if filtered_creators.empty:
+    if fc.empty:
         st.warning("조건에 맞는 크리에이터가 없습니다.")
     else:
-        creator_names = filtered_creators['Channel_Name'].tolist()
-        creator_ids   = filtered_creators['Creator_ID'].tolist()
-        sel_creator   = st.selectbox("크리에이터 선택", creator_names)
-        sel_cid_exp   = creator_ids[creator_names.index(sel_creator)]
-        creator_info  = filtered_creators[filtered_creators['Creator_ID'] == sel_cid_exp].iloc[0]
+        sel_creator = st.selectbox("크리에이터 선택", fc['Channel_Name'].tolist())
+        sel_cid_exp = fc[fc['Channel_Name'] == sel_creator].iloc[0]['Creator_ID']
+        ci          = fc[fc['Creator_ID'] == sel_cid_exp].iloc[0]
 
-        # 크리에이터 프로필 카드
+        # 프로필 카드
         with st.container(border=True):
             pc1, pc2, pc3, pc4, pc5 = st.columns(5)
-            pc1.metric("플랫폼", creator_info['Platform'])
-            pc2.metric("카테고리", creator_info['Category'])
-            followers_disp = f"{creator_info['Followers']/10000:.1f}만" \
-                             if creator_info['Followers'] >= 10000 \
-                             else f"{creator_info['Followers']:,}"
-            pc3.metric("구독자", followers_disp)
-            pc4.metric("참여율", f"{creator_info['Engagement_Rate']}%")
-            pc5.metric("Risk Score", f"{creator_info['Risk_Score']}")
+            pc1.metric("플랫폼",    ci['Platform'])
+            pc2.metric("카테고리",  ci['Category'])
+            pc3.metric("구독자",    fmt_followers(ci['Followers']))
+            pc4.metric("참여율",    f"{ci['Engagement_Rate']}%")
+            pc5.metric("Risk Score", f"{ci['Risk_Score']}")
 
             n_c = collab_count.get(sel_cid_exp, 0)
             n_s = collab_success.get(sel_cid_exp, 0)
+            succ_rate = int(n_s / n_c * 100) if n_c > 0 else 0
             st.markdown(
-                f"협업 이력 **{n_c}회** | 성공 **{n_s}회** "
-                f"({int(n_s/n_c*100) if n_c > 0 else 0}%)"
+                f"협업 이력 **{n_c}회** &nbsp;|&nbsp; "
+                f"성공 **{n_s}회** ({succ_rate}%)"
             )
 
+        # 맞는 브랜드 Top 10
         st.markdown("#### 이 크리에이터에게 맞는 브랜드 Top 10")
-        creator_scores = similarity_df[similarity_df['Creator_ID'] == sel_cid_exp].copy()
-        creator_scores = creator_scores.nlargest(10, 'matching_score')
-        brand_name_map = dict(zip(brands['Brand_ID'], brands['Brand_Name']))
-        brand_ind_map  = dict(zip(brands['Brand_ID'], brands['Industry']))
-        brand_bud_map  = dict(zip(brands['Brand_ID'], brands['Monthly_Budget']))
-        creator_scores['브랜드']   = creator_scores['Brand_ID'].map(brand_name_map)
-        creator_scores['업종']     = creator_scores['Brand_ID'].map(brand_ind_map)
-        creator_scores['월예산']   = creator_scores['Brand_ID'].map(brand_bud_map)
-        creator_scores['등급']     = creator_scores['recommendation_grade'] \
-                                     if 'recommendation_grade' in creator_scores.columns \
-                                     else creator_scores['matching_score'].apply(grade_label)
-        creator_scores['순위']     = range(1, len(creator_scores) + 1)
+        cs = similarity_df[similarity_df['Creator_ID'] == sel_cid_exp].nlargest(
+            10, 'matching_score').copy()
+        cs['브랜드']  = cs['Brand_ID'].map(brand_name_map)
+        cs['업종']    = cs['Brand_ID'].map(dict(zip(brands['Brand_ID'], brands['Industry'])))
+        cs['월예산']  = cs['Brand_ID'].map(dict(zip(brands['Brand_ID'], brands['Monthly_Budget'])))
+        cs['등급']    = cs.get('recommendation_grade', cs['matching_score'].apply(grade_label))
+        cs['순위']    = range(1, len(cs) + 1)
 
-        display_cols = ['순위', '브랜드', '업종', '월예산', 'matching_score', '등급']
-        st.dataframe(
-            creator_scores[display_cols].rename(columns={'matching_score': '매칭점수'}),
-            use_container_width=True, hide_index=True
-        )
-
-        st.bar_chart(
-            creator_scores.set_index('브랜드')['matching_score'],
-            color="#1a7a4a"
-        )
+        col_table, col_bar = st.columns([1, 1])
+        with col_table:
+            st.dataframe(
+                cs[['순위', '브랜드', '업종', '월예산', 'matching_score', '등급']].rename(
+                    columns={'matching_score': '매칭점수'}),
+                use_container_width=True, hide_index=True
+            )
+        with col_bar:
+            fig_exp = go.Figure(go.Bar(
+                y=cs['브랜드'], x=cs['matching_score'],
+                orientation='h',
+                marker_color=[GRADE_COLOR.get(g, "#888") for g in cs['등급']],
+                text=[f"{v:.2f}" for v in cs['matching_score']],
+                textposition='outside',
+            ))
+            fig_exp.update_layout(
+                height=340, margin=dict(l=0, r=50, t=10, b=10),
+                plot_bgcolor='white', paper_bgcolor='white',
+                xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
+                yaxis=dict(showgrid=False, autorange='reversed'),
+                font=dict(size=11),
+            )
+            st.plotly_chart(fig_exp, use_container_width=True,
+                            config={'displayModeBar': False})
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# TAB 3: 성과 대시보드 (썸트렌드 스타일)
+# TAB 3: 성과 대시보드
 # ════════════════════════════════════════════════════════════════════════════
 with tab_dashboard:
-    st.subheader("캠페인 성과 대시보드")
+    st.markdown("<div class='section-title'>캠페인 성과 대시보드</div>",
+                unsafe_allow_html=True)
 
-    # KPI 요약
-    total_collabs  = len(collabs)
-    success_cnt    = (collabs['is_success'] == 'Y').sum()
-    success_rate   = success_cnt / total_collabs * 100 if total_collabs > 0 else 0
-    avg_ctr        = collabs['CTR'].mean()
-    avg_cvr        = collabs['CVR'].mean()
+    total_collabs = len(collabs)
+    success_cnt   = (collabs['is_success'] == 'Y').sum()
+    success_rate  = success_cnt / total_collabs * 100 if total_collabs > 0 else 0
+    avg_ctr       = collabs['CTR'].mean()
+    avg_cvr       = collabs['CVR'].mean()
 
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("총 협업 수",   f"{total_collabs:,}건")
-    k2.metric("성공률",       f"{success_rate:.1f}%")
-    k3.metric("평균 CTR",    f"{avg_ctr:.2f}%")
-    k4.metric("평균 CVR",    f"{avg_cvr:.2f}%")
+    for col, val, label, color in [
+        (k1, f"{total_collabs:,}건", "총 협업 수",  "#1a3a5c"),
+        (k2, f"{success_rate:.1f}%", "성공률",      "#1a7a4a"),
+        (k3, f"{avg_ctr:.2f}%",      "평균 CTR",   "#2d6a9f"),
+        (k4, f"{avg_cvr:.2f}%",      "평균 CVR",   "#b07c00"),
+    ]:
+        col.markdown(f"""
+        <div class='kpi-card'>
+            <div class='kpi-value' style='color:{color};'>{val}</div>
+            <div class='kpi-label'>{label}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.divider()
-
+    st.markdown("")
     dcol1, dcol2 = st.columns(2)
 
     with dcol1:
         st.markdown("**업종별 성공률**")
-        brand_ind = dict(zip(brands['Brand_ID'], brands['Industry']))
-        collabs_ind = collabs.copy()
-        collabs_ind['Industry'] = collabs_ind['Brand_ID'].map(brand_ind)
-        ind_stats = collabs_ind.groupby('Industry').apply(
+        brand_ind_map2 = dict(zip(brands['Brand_ID'], brands['Industry']))
+        ci2 = collabs.copy()
+        ci2['Industry'] = ci2['Brand_ID'].map(brand_ind_map2)
+        ind_stats = ci2.groupby('Industry').apply(
             lambda x: round((x['is_success'] == 'Y').mean() * 100, 1)
         ).reset_index()
         ind_stats.columns = ['업종', '성공률(%)']
-        ind_stats = ind_stats.sort_values('성공률(%)', ascending=False)
-        st.bar_chart(ind_stats.set_index('업종'), color="#1a7a4a")
+        ind_stats = ind_stats.sort_values('성공률(%)')
+
+        fig_ind = go.Figure(go.Bar(
+            y=ind_stats['업종'], x=ind_stats['성공률(%)'],
+            orientation='h',
+            marker_color=[
+                "#1a7a4a" if v >= 50 else "#2d6a9f" if v >= 35 else "#b07c00"
+                for v in ind_stats['성공률(%)']
+            ],
+            text=[f"{v}%" for v in ind_stats['성공률(%)']],
+            textposition='outside',
+        ))
+        fig_ind.update_layout(
+            height=320, margin=dict(l=0, r=50, t=10, b=0),
+            plot_bgcolor='white', paper_bgcolor='white',
+            xaxis=dict(range=[0, 100], showgrid=False, visible=False),
+            yaxis=dict(showgrid=False),
+            font=dict(size=12),
+        )
+        st.plotly_chart(fig_ind, use_container_width=True,
+                        config={'displayModeBar': False})
 
     with dcol2:
         st.markdown("**카테고리별 평균 CTR**")
-        creator_cat = dict(zip(creators['Creator_ID'], creators['Category']))
-        collabs_cat = collabs.copy()
-        collabs_cat['Category'] = collabs_cat['Creator_ID'].map(creator_cat)
-        cat_ctr = collabs_cat.groupby('Category')['CTR'].mean().round(2).reset_index()
+        creator_cat_map = dict(zip(creators['Creator_ID'], creators['Category']))
+        cc = collabs.copy()
+        cc['Category'] = cc['Creator_ID'].map(creator_cat_map)
+        cat_ctr = cc.groupby('Category')['CTR'].mean().round(2).reset_index()
         cat_ctr.columns = ['카테고리', '평균CTR(%)']
-        cat_ctr = cat_ctr.sort_values('평균CTR(%)', ascending=False)
-        st.bar_chart(cat_ctr.set_index('카테고리'), color="#2d6a9f")
+        cat_ctr = cat_ctr.sort_values('평균CTR(%)')
+
+        fig_ctr = go.Figure(go.Bar(
+            y=cat_ctr['카테고리'], x=cat_ctr['평균CTR(%)'],
+            orientation='h',
+            marker_color=PLOTLY_COLORS[:len(cat_ctr)],
+            text=[f"{v}%" for v in cat_ctr['평균CTR(%)']],
+            textposition='outside',
+        ))
+        fig_ctr.update_layout(
+            height=320, margin=dict(l=0, r=50, t=10, b=0),
+            plot_bgcolor='white', paper_bgcolor='white',
+            xaxis=dict(showgrid=False, visible=False),
+            yaxis=dict(showgrid=False),
+            font=dict(size=12),
+        )
+        st.plotly_chart(fig_ctr, use_container_width=True,
+                        config={'displayModeBar': False})
 
     st.divider()
-
     dcol3, dcol4 = st.columns(2)
 
     with dcol3:
         st.markdown("**성공 협업 Top 10 크리에이터**")
-        top_creators = collabs[collabs['is_success'] == 'Y'] \
-            .groupby('Creator_ID').size().nlargest(10).reset_index()
-        top_creators.columns = ['Creator_ID', '성공횟수']
-        top_creators['크리에이터'] = top_creators['Creator_ID'].map(
-            dict(zip(creators['Creator_ID'], creators['Channel_Name']))
+        top_c = (collabs[collabs['is_success'] == 'Y']
+                 .groupby('Creator_ID').size().nlargest(10).reset_index())
+        top_c.columns = ['Creator_ID', '성공횟수']
+        top_c['크리에이터'] = top_c['Creator_ID'].map(name_map_c)
+        top_c = top_c.sort_values('성공횟수')
+
+        fig_top = go.Figure(go.Bar(
+            y=top_c['크리에이터'], x=top_c['성공횟수'],
+            orientation='h',
+            marker_color="#1a7a4a",
+            text=top_c['성공횟수'], textposition='outside',
+        ))
+        fig_top.update_layout(
+            height=320, margin=dict(l=0, r=40, t=10, b=0),
+            plot_bgcolor='white', paper_bgcolor='white',
+            xaxis=dict(showgrid=False, visible=False),
+            yaxis=dict(showgrid=False),
+            font=dict(size=12),
         )
-        st.dataframe(
-            top_creators[['크리에이터', '성공횟수']],
-            use_container_width=True, hide_index=True
-        )
+        st.plotly_chart(fig_top, use_container_width=True,
+                        config={'displayModeBar': False})
 
     with dcol4:
-        st.markdown("**노출수 vs CTR 산점도**")
-        sample = collabs.sample(min(200, len(collabs)), random_state=42)[
-            ['Impressions', 'CTR', 'is_success']
-        ].copy()
-        sample['색상'] = sample['is_success'].map({'Y': '#1a7a4a', 'N': '#c0392b'})
-        st.scatter_chart(
-            sample,
-            x='Impressions', y='CTR',
-            color='색상', size=30
+        st.markdown("**노출수 vs CTR (성공/실패)**")
+        sample = collabs.sample(min(300, len(collabs)), random_state=42).copy()
+        sample['결과'] = sample['is_success'].map({'Y': '성공', 'N': '실패'})
+
+        fig_sc = px.scatter(
+            sample, x='Impressions', y='CTR',
+            color='결과',
+            color_discrete_map={'성공': '#1a7a4a', '실패': '#c0392b'},
+            opacity=0.65,
+            labels={'Impressions': '노출수', 'CTR': 'CTR (%)'},
         )
+        fig_sc.update_traces(marker_size=6)
+        fig_sc.update_layout(
+            height=320, margin=dict(l=0, r=0, t=10, b=0),
+            plot_bgcolor='#fafafa', paper_bgcolor='white',
+            legend=dict(title='', orientation='h', y=1.08),
+            font=dict(size=12),
+        )
+        st.plotly_chart(fig_sc, use_container_width=True,
+                        config={'displayModeBar': False})
 
     st.divider()
     st.markdown("**전체 협업 데이터**")
-    display_collabs = collabs.copy()
-    display_collabs['크리에이터'] = display_collabs['Creator_ID'].map(
-        dict(zip(creators['Creator_ID'], creators['Channel_Name']))
-    )
-    display_collabs['브랜드'] = display_collabs['Brand_ID'].map(
-        dict(zip(brands['Brand_ID'], brands['Brand_Name']))
-    )
+    dc = collabs.copy()
+    dc['크리에이터'] = dc['Creator_ID'].map(name_map_c)
+    dc['브랜드']     = dc['Brand_ID'].map(brand_name_map)
     st.dataframe(
-        display_collabs[['브랜드', '크리에이터', 'CTR', 'CVR',
-                          'Impressions', 'Budget_Spent', 'is_success']].rename(
-            columns={'is_success': '성공'}
-        ),
+        dc[['브랜드', '크리에이터', 'CTR', 'CVR',
+            'Impressions', 'Budget_Spent', 'is_success']].rename(
+            columns={'is_success': '성공'}),
         use_container_width=True, hide_index=True
     )
 
 
-# ── 푸터 ─────────────────────────────────────────────────────────────────────
+# ── 푸터 ──────────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown(
-    "<p style='text-align:center; color:#aaa; font-size:0.8rem;'>"
-    "KAIST BIZ | 비즈니스 애널리틱스 2026 | "
+    "<p style='text-align:center; color:#bbb; font-size:0.78rem;'>"
+    "KAIST BIZ &nbsp;|&nbsp; 비즈니스 애널리틱스 2026 &nbsp;|&nbsp; "
     "CBF + CF Hybrid Recommendation System</p>",
     unsafe_allow_html=True
 )
