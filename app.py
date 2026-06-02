@@ -355,7 +355,6 @@ with tab_match:
                                     {row['Platform']} &nbsp;·&nbsp; {row['Category']}
                                 </div>
 
-                                <!-- 매칭 점수 게이지 -->
                                 <div style='margin-bottom:0.8rem;'>
                                     <div style='display:flex; justify-content:space-between;
                                                 font-size:0.78rem; color:#666; margin-bottom:0.3rem;'>
@@ -371,7 +370,6 @@ with tab_match:
                                     </div>
                                 </div>
 
-                                <!-- 구독자 게이지 -->
                                 <div style='margin-bottom:0.8rem;'>
                                     <div style='display:flex; justify-content:space-between;
                                                 font-size:0.78rem; color:#666; margin-bottom:0.3rem;'>
@@ -386,7 +384,6 @@ with tab_match:
                                     </div>
                                 </div>
 
-                                <!-- 지표 -->
                                 <div style='display:flex; gap:0.6rem; margin-bottom:0.8rem;
                                             font-size:0.78rem;'>
                                     <div style='flex:1; background:#f8f9fa; border-radius:8px;
@@ -412,7 +409,6 @@ with tab_match:
                                     </div>
                                 </div>
 
-                                <!-- 추천 사유 태그 -->
                                 <div>{tags_html}</div>
                             </div>
                             """, unsafe_allow_html=True)
