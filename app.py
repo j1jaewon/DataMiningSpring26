@@ -91,14 +91,14 @@ html, body, [class*="css"], .stMarkdown, .stDataFrame,
 .kpi-label { font-size: 0.82rem; color: #888; margin-top: 0.2rem; }
 /* 섹션 헤더 */
 .section-title {
-    font-size: 1rem;
-    font-weight: 700;
+    font-size: 1.05rem;
+    font-weight: 800;
     color: #1a3a5c;
-    margin: 1.6rem 0 0.8rem;
-    padding-bottom: 0.4rem;
-    border-bottom: 1px solid #e4eaf0;
+    margin: 2.2rem 0 0.9rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e4eaf0;
     display: block;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.3px;
 }
 /* 사유 태그 */
 .reason-tag {
@@ -247,12 +247,13 @@ st.markdown("""
 
 # ── 소개 문구 ─────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style='background:#f5f8fc;border-radius:12px;padding:1rem 1.5rem;
-            margin:0.2rem 0 1.2rem;border-left:4px solid #2d6a9f;'>
-    <div style='font-size:1.15rem;font-weight:800;color:#1a3a5c;letter-spacing:-0.3px;'>
+<div style='text-align:center;padding:1.4rem 0 1rem;'>
+    <div style='font-size:1.35rem;font-weight:800;color:#1a3a5c;
+                letter-spacing:-0.5px;line-height:1.4;'>
         브랜드 ↔ 크리에이터, 양방향 매칭
     </div>
-    <div style='font-size:0.85rem;color:#666;margin-top:0.3rem;line-height:1.8;'>
+    <div style='font-size:0.88rem;color:#888;margin-top:0.5rem;line-height:1.9;
+                font-weight:400;'>
         976건의 실제 협업 데이터로 학습<br>
         AI가 최적 파트너를 점수로 추천합니다
     </div>
@@ -338,9 +339,11 @@ with tab_match:
             unsafe_allow_html=True,
         )
 
+        st.markdown("<hr style='border:none;border-top:1px solid #e8edf2;margin:0.6rem 0 0.8rem;'>",
+                    unsafe_allow_html=True)
         run = st.button("🔍 추천 받기", type="primary", use_container_width=True)
 
-    # ② 추천 결과
+    # 추천 결과
     if run or 'last_brand_id' in st.session_state:
         if run:
             st.session_state.update({
@@ -356,7 +359,7 @@ with tab_match:
 
         top_df = recommend(brand_id, similarity_df, creators, risk_threshold, top_n)
 
-        st.markdown("<div class='section-title'>② 추천 결과</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-title'>추천 결과</div>", unsafe_allow_html=True)
 
         if top_df.empty:
             st.warning("조건을 만족하는 크리에이터가 없습니다. Risk Score 기준을 낮춰보세요.")
@@ -464,7 +467,7 @@ with tab_match:
                                         )
 
             # ③ 매칭 점수 분포
-            st.markdown("<div class='section-title'>③ 매칭 점수 분포</div>",
+            st.markdown("<div class='section-title'>매칭 점수 분포</div>",
                         unsafe_allow_html=True)
             with st.container():
                 brand_scores = similarity_df[similarity_df['Brand_ID'] == brand_id].copy()
@@ -531,7 +534,7 @@ with tab_match:
                         """, unsafe_allow_html=True)
 
             # ④ 유사 협업 사례
-            st.markdown("<div class='section-title'>④ 유사 협업 사례</div>",
+            st.markdown("<div class='section-title'>유사 협업 사례</div>",
                         unsafe_allow_html=True)
             top_creator_ids = top_df['Creator_ID'].tolist()
             placeholders    = ','.join('?' * len(top_creator_ids))
@@ -583,7 +586,7 @@ with tab_match:
                         )
 
             # ⑤ 같은 업종 브랜드 비교
-            st.markdown("<div class='section-title'>⑤ 같은 업종 브랜드 비교</div>",
+            st.markdown("<div class='section-title'>같은 업종 브랜드 비교</div>",
                         unsafe_allow_html=True)
             with st.container():
                 compare_brands = brands[
@@ -650,7 +653,7 @@ with tab_match:
                     )
 
             # ⑥ 캠페인 성과 입력
-            st.markdown("<div class='section-title'>⑥ 캠페인 성과 입력</div>",
+            st.markdown("<div class='section-title'>캠페인 성과 입력</div>",
                         unsafe_allow_html=True)
             with st.container():
                 col1, col2, col3, col4 = st.columns(4)
@@ -697,6 +700,8 @@ with tab_explore:
     st.markdown("<div class='section-title'>크리에이터 탐색</div>", unsafe_allow_html=True)
     st.caption("크리에이터 관점에서 협업 가능성이 높은 브랜드를 역방향으로 조회합니다.")
 
+    st.markdown("<div style='background:#f8fafc;border-radius:10px;padding:1rem 1.2rem 0.2rem;margin-bottom:0.8rem;'>",
+                unsafe_allow_html=True)
     with st.container():
         ecol1, ecol2, ecol3 = st.columns(3)
         with ecol1:
@@ -710,6 +715,7 @@ with tab_explore:
         with ecol3:
             min_risk = st.slider("최소 Risk Score", 1.0, 5.0, 2.5, 0.5,
                                  key="explore_min_risk")
+    st.markdown("</div>", unsafe_allow_html=True)
 
     fc = creators.copy()
     if cat_filter  != "전체": fc = fc[fc['Category'] == cat_filter]
@@ -728,6 +734,8 @@ with tab_explore:
         n_c = collab_count.get(sel_cid_exp, 0)
         n_s = collab_success.get(sel_cid_exp, 0)
         succ_rate = int(n_s / n_c * 100) if n_c > 0 else 0
+        st.markdown("<div style='background:#f8fafc;border-radius:10px;padding:1rem 1.2rem 0.8rem;margin:0.5rem 0 1rem;'>",
+                    unsafe_allow_html=True)
         with st.container():
             metrics = [
                 ("플랫폼",     ci['Platform']),
@@ -752,6 +760,7 @@ with tab_explore:
                 f"</div>",
                 unsafe_allow_html=True,
             )
+        st.markdown("</div>", unsafe_allow_html=True)
 
         # 맞는 브랜드 Top 10
         st.markdown("#### 이 크리에이터에게 맞는 브랜드 Top 10")
