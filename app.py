@@ -31,8 +31,9 @@ GRADE_BORDER = {"A": "#a3d9b8", "B": "#a3c0e8", "C": "#e8d5a0", "D": "#f0a8a0"}
 GRADE_LABEL  = {"A": "강력 추천", "B": "추천", "C": "보통", "D": "참고"}
 RANK_MEDAL   = {1: "🥇", 2: "🥈", 3: "🥉"}
 PLOTLY_COLORS = [
-    "#4C8EDA", "#3BAB72", "#F0A500", "#E05C5C", "#9B72CF",
-    "#36B8B8", "#E07B3A", "#6BAE75", "#D45FA0", "#7B9ECC", "#A8C96E",
+    "#2d6a9f", "#4a87bb", "#6aa3d0", "#8ec0e4", "#b0d4ee",
+    "#1a7a4a", "#3a9a6a", "#6abf90", "#9fdcb8", "#c5edd8",
+    "#8a6aaa",
 ]
 
 # ── 전역 CSS ──────────────────────────────────────────────────────────────────
@@ -218,7 +219,7 @@ st.markdown("""
             Creator <span style='color:#7ec8f0;'>Match</span>
         </h1>
         <p style='color: #c8dff0; margin: 0.45rem 0 0; font-size: 0.92rem; font-weight:400;'>
-            AI 기반 기업·크리에이터 매칭 플랫폼 &nbsp;—&nbsp; CBF + CF 하이브리드 추천
+            AI 기반 기업·크리에이터 매칭 플랫폼
         </p>
     </div>
     <div style='text-align:right;'>
@@ -565,6 +566,7 @@ with tab_match:
                     xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
                     yaxis=dict(showgrid=False, autorange='reversed'),
                     font=dict(family='Noto Sans KR, sans-serif', size=12),
+                    bargap=0.4,
                 )
                 col_c1, col_c2 = st.columns([2, 1])
                 with col_c1:
@@ -653,20 +655,32 @@ with tab_explore:
         ci          = fc[fc['Creator_ID'] == sel_cid_exp].iloc[0]
 
         # 프로필 카드
+        n_c = collab_count.get(sel_cid_exp, 0)
+        n_s = collab_success.get(sel_cid_exp, 0)
+        succ_rate = int(n_s / n_c * 100) if n_c > 0 else 0
         with st.container(border=True):
-            pc1, pc2, pc3, pc4, pc5 = st.columns(5)
-            pc1.metric("플랫폼",    ci['Platform'])
-            pc2.metric("카테고리",  ci['Category'])
-            pc3.metric("구독자",    fmt_followers(ci['Followers']))
-            pc4.metric("참여율",    f"{ci['Engagement_Rate']}%")
-            pc5.metric("Risk Score", f"{ci['Risk_Score']}")
-
-            n_c = collab_count.get(sel_cid_exp, 0)
-            n_s = collab_success.get(sel_cid_exp, 0)
-            succ_rate = int(n_s / n_c * 100) if n_c > 0 else 0
+            metrics = [
+                ("플랫폼",     ci['Platform']),
+                ("카테고리",   ci['Category']),
+                ("구독자",     fmt_followers(ci['Followers'])),
+                ("참여율",     f"{ci['Engagement_Rate']}%"),
+                ("Risk Score", f"{ci['Risk_Score']}"),
+            ]
+            cols_m = st.columns(len(metrics))
+            for col_m, (label, val) in zip(cols_m, metrics):
+                col_m.markdown(
+                    f"<div style='font-family:\"Noto Sans KR\",sans-serif;'>"
+                    f"<div style='font-size:0.78rem;color:#888;margin-bottom:0.25rem;'>{label}</div>"
+                    f"<div style='font-size:1.45rem;font-weight:700;color:#1a3a5c;letter-spacing:-0.5px;'>{val}</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
             st.markdown(
-                f"협업 이력 **{n_c}회** &nbsp;|&nbsp; "
-                f"성공 **{n_s}회** ({succ_rate}%)"
+                f"<div style='font-family:\"Noto Sans KR\",sans-serif;font-size:0.88rem;"
+                f"color:#555;margin-top:0.6rem;'>"
+                f"협업 이력 <b>{n_c}회</b> &nbsp;|&nbsp; 성공 <b>{n_s}회</b> ({succ_rate}%)"
+                f"</div>",
+                unsafe_allow_html=True,
             )
 
         # 맞는 브랜드 Top 10
@@ -748,11 +762,14 @@ with tab_dashboard:
         ind_stats.columns = ['업종', '성공률(%)']
         ind_stats = ind_stats.sort_values('성공률(%)')
 
+        n_ind = len(ind_stats)
+        ind_opacities = [0.4 + 0.6 * i / max(n_ind - 1, 1) for i in range(n_ind)]
         fig_ind = go.Figure(go.Bar(
             y=ind_stats['업종'], x=ind_stats['성공률(%)'],
             orientation='h',
-            marker_color=PLOTLY_COLORS[:len(ind_stats)],
-            marker_opacity=0.85,
+            marker=dict(
+                color=["rgba(26,122,74," + f"{op:.2f})" for op in ind_opacities]
+            ),
             text=[f"{v}%" for v in ind_stats['성공률(%)']],
             textposition='outside',
         ))
@@ -777,10 +794,14 @@ with tab_dashboard:
         cat_ctr.columns = ['카테고리', '평균CTR(%)']
         cat_ctr = cat_ctr.sort_values('평균CTR(%)')
 
+        n_ctr = len(cat_ctr)
+        ctr_opacities = [0.45 + 0.55 * i / max(n_ctr - 1, 1) for i in range(n_ctr)]
         fig_ctr = go.Figure(go.Bar(
             y=cat_ctr['카테고리'], x=cat_ctr['평균CTR(%)'],
             orientation='h',
-            marker_color=PLOTLY_COLORS[:len(cat_ctr)],
+            marker=dict(
+                color=["rgba(45,106,159," + f"{op:.2f})" for op in ctr_opacities]
+            ),
             text=[f"{v}%" for v in cat_ctr['평균CTR(%)']],
             textposition='outside',
         ))
