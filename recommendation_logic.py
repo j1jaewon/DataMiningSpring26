@@ -6,6 +6,18 @@ warnings.filterwarnings('ignore')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in dir() else '.'
 
+# ===== 등급 기준 (A≥0.9, B≥0.8, C≥0.7, D<0.7) =====
+def grade_label(score):
+    if score >= 0.9:
+        return "A"
+    elif score >= 0.8:
+        return "B"
+    elif score >= 0.7:
+        return "C"
+    else:
+        return "D"
+
+
 # ===== STEP 1: CBF — 카테고리 점수 =====
 category_map = {
     '뷰티': ['뷰티'],
@@ -81,7 +93,7 @@ def calc_cf_score(brand_id, creator_id, rating_matrix, brand_similarity):
 
 # ===== STEP 4: 전체 매칭 점수 계산 =====
 def build_similarity(creators, brands, ratings):
-    rating_matrix, brand_similarity = build_cf_matrix(ratings)
+    rating_matrix, brand_sim = build_cf_matrix(ratings)
 
     results = []
     for b in brands.to_dict('records'):
@@ -91,16 +103,17 @@ def build_similarity(creators, brands, ratings):
                 continue
             ctx_score = calc_context_score(b, c)
             cf_score  = calc_cf_score(b['Brand_ID'], c['Creator_ID'],
-                                      rating_matrix, brand_similarity)
+                                      rating_matrix, brand_sim)
             matching  = cat_score*0.3 + ctx_score*0.3 + cf_score*0.4 if cf_score > 0 \
                         else cat_score*0.5 + ctx_score*0.5
             results.append({
-                'Brand_ID':       b['Brand_ID'],
-                'Creator_ID':     c['Creator_ID'],
-                'category_score': round(cat_score, 4),
-                'context_score':  round(ctx_score, 4),
-                'cf_score':       round(cf_score, 4),
-                'matching_score': round(matching, 4),
+                'Brand_ID':              b['Brand_ID'],
+                'Creator_ID':            c['Creator_ID'],
+                'category_score':        round(cat_score, 4),
+                'context_score':         round(ctx_score, 4),
+                'cf_score':              round(cf_score, 4),
+                'matching_score':        round(matching, 4),
+                'recommendation_grade':  grade_label(round(matching, 4)),
             })
     return pd.DataFrame(results)
 
@@ -127,7 +140,8 @@ def recommend(brand_id, similarity_df, creators, risk_threshold=2.5, top_n=3):
 
     return top[['Rank', 'Channel_Name', 'Category', 'Platform', 'Followers',
                 'Engagement_Rate', 'category_score', 'context_score',
-                'cf_score', 'matching_score', 'Risk_Score']].reset_index(drop=True)
+                'cf_score', 'matching_score', 'recommendation_grade',
+                'Risk_Score', 'Creator_ID']].reset_index(drop=True)
 
 
 # ===== 독립 실행 시: 점수 사전계산 후 CSV 저장 =====
