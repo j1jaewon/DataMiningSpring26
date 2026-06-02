@@ -46,3 +46,6 @@ Thumbs.db
 *.log
 *.tmp
 *.swp
+
+# SQLite DB (CSV에서 자동 생성되므로 추적 불필요)
+*.db

@@ -1,30 +1,60 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import sqlite3
 import os
 import warnings
 warnings.filterwarnings('ignore')
 
 from recommendation_logic import build_similarity, recommend, grade_label
+from db_setup import (
+    setup_db, get_conn, save_similarity, save_campaign,
+    SQL_BRANDS, SQL_CREATORS, SQL_CAMPAIGNS, SQL_RATINGS, SQL_SIMILARITY,
+    SQL_COLLAB_COUNT, SQL_COLLAB_SUCCESS, SQL_SIMILAR_CASES, P1_SQL3,
+    DB_PATH,
+)
 
 st.set_page_config(page_title="기업-크리에이터 매칭 추천 시스템", layout="wide")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = BASE_DIR
 
 GRADE_COLOR = {"A": "#1a7a4a", "B": "#2d6a9f", "C": "#b07c00", "D": "#c0392b"}
 GRADE_BG    = {"A": "#e8f7ef", "B": "#e8f0fb", "C": "#fdf6e3", "D": "#fdecea"}
 
-# ── 데이터 로드 ──────────────────────────────────────────────────────────────
+# creator.db 없으면 CSV에서 자동 생성
+if not os.path.exists(DB_PATH):
+    with st.spinner("creator.db 초기화 중... (최초 1회)"):
+        setup_db()
+
+# ── 데이터 로드 (SQLite) ─────────────────────────────────────────────────────
 @st.cache_data
 def load_data():
-    creators = pd.read_csv(os.path.join(DATA_DIR, 'creators_clean.csv'))
-    brands   = pd.read_csv(os.path.join(DATA_DIR, 'brands_100.csv'))
-    collabs  = pd.read_csv(os.path.join(DATA_DIR, 'collaborations_final.csv'))
-    ratings  = pd.read_csv(os.path.join(DATA_DIR, 'ratings_clean.csv'))
-    sim_path = os.path.join(DATA_DIR, 'creator_similarity.csv')
-    similarity = pd.read_csv(sim_path) if os.path.exists(sim_path) else None
+    conn = get_conn()
+    creators   = pd.read_sql(SQL_CREATORS,   conn)
+    brands     = pd.read_sql(SQL_BRANDS,     conn)
+    collabs    = pd.read_sql(SQL_CAMPAIGNS,  conn)
+    ratings    = pd.read_sql(SQL_RATINGS,    conn)
+    cnt = conn.execute("SELECT COUNT(*) FROM CreatorSimilarity").fetchone()[0]
+    similarity = pd.read_sql(SQL_SIMILARITY, conn) if cnt > 0 else None
+    conn.close()
     return creators, brands, collabs, ratings, similarity
+
+@st.cache_data
+def load_collab_stats():
+    conn = get_conn()
+    cnt_df  = pd.read_sql(SQL_COLLAB_COUNT,   conn)
+    succ_df = pd.read_sql(SQL_COLLAB_SUCCESS, conn)
+    conn.close()
+    collab_count   = dict(zip(cnt_df['Creator_ID'],  cnt_df['cnt']))
+    collab_success = dict(zip(succ_df['Creator_ID'], succ_df['cnt']))
+    return collab_count, collab_success
+
+def reload_collabs():
+    """성과 저장 후 캠페인 데이터만 새로 읽기."""
+    conn = get_conn()
+    df = pd.read_sql(SQL_CAMPAIGNS, conn)
+    conn.close()
+    return df
 
 build_similarity_cached = st.cache_data(build_similarity)
 
@@ -33,11 +63,11 @@ creators, brands, collabs, ratings, similarity_df = load_data()
 if similarity_df is None:
     with st.spinner("추천 점수를 계산 중입니다... (최초 1회)"):
         similarity_df = build_similarity_cached(creators, brands, ratings)
+        save_similarity(similarity_df)   # P1-SQL2: CreatorSimilarity에 INSERT
 
-# ── 협업 이력 카운트 (크리에이터별) ──────────────────────────────────────────
-collab_count = collabs.groupby('Creator_ID').size().to_dict()
-collab_success = collabs[collabs['is_success'] == 'Y'].groupby('Creator_ID').size().to_dict()
-max_followers  = creators['Followers'].max()
+# ── 협업 이력 카운트 (SQLite 집계) ───────────────────────────────────────────
+collab_count, collab_success = load_collab_stats()
+max_followers = creators['Followers'].max()
 
 # ── 헤더 ─────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -265,28 +295,27 @@ with tab_match:
                                 f"점수 {top_scores['matching_score'].min():.2f} ~ "
                                 f"{top_scores['matching_score'].max():.2f}")
 
-            # ── ④ 유사 협업 사례 ──────────────────────────────────────────
+            # ── ④ 유사 협업 사례 (SQL_SIMILAR_CASES 쿼리) ──────────────────
             st.subheader("④ 유사 협업 사례")
-            brand_industry     = brand_row['Industry']
-            same_industry_ids  = brands[brands['Industry'] == brand_industry]['Brand_ID'].tolist()
-            top_creator_ids    = top_df['Creator_ID'].tolist()
-            cases = collabs[
-                (collabs['Brand_ID'].isin(same_industry_ids)) &
-                (collabs['Creator_ID'].isin(top_creator_ids))
-            ].copy()
-            name_map_c  = dict(zip(creators['Creator_ID'], creators['Channel_Name']))
-            brand_map_b = dict(zip(brands['Brand_ID'], brands['Brand_Name']))
-            cases['크리에이터'] = cases['Creator_ID'].map(name_map_c)
-            cases['브랜드']     = cases['Brand_ID'].map(brand_map_b)
+            brand_industry  = brand_row['Industry']
+            top_creator_ids = top_df['Creator_ID'].tolist()
+            placeholders    = ','.join('?' * len(top_creator_ids))
+            conn = get_conn()
+            cases = pd.read_sql(
+                SQL_SIMILAR_CASES.format(placeholders=placeholders),
+                conn,
+                params=[brand_industry] + top_creator_ids,
+            )
+            conn.close()
 
             if cases.empty:
                 st.info("동일 업종의 유사 협업 사례가 없습니다.")
             else:
                 with st.container(border=True):
-                    for _, c in cases.head(5).iterrows():
+                    for _, c in cases.iterrows():
                         icon = "✅" if c['is_success'] == 'Y' else "❌"
                         st.markdown(
-                            f"{icon} **{c['브랜드']}** + **{c['크리에이터']}** → "
+                            f"{icon} **{c['Brand_Name']}** + **{c['Creator_Name']}** → "
                             f"예산 {c['Budget_Spent']:,}원 | "
                             f"노출 {c['Impressions']:,}회 | "
                             f"CTR {c['CTR']}% | CVR {c['CVR']}%"
@@ -357,8 +386,8 @@ with tab_match:
                         'Collab_ID':      f"CB_NEW_{pd.Timestamp.now().strftime('%Y%m%d%H%M%S')}",
                         'Brand_ID':       brand_id,
                         'Creator_ID':     sel_cid,
-                        'Campaign_Start': pd.Timestamp.now().date(),
-                        'Campaign_End':   pd.Timestamp.now().date(),
+                        'Campaign_Start': str(pd.Timestamp.now().date()),
+                        'Campaign_End':   str(pd.Timestamp.now().date()),
                         'Budget_Spent':   0,
                         'Impressions':    impressions_input,
                         'Clicks':         int(impressions_input * ctr_input / 100),
@@ -367,11 +396,7 @@ with tab_match:
                         'CVR':            0,
                         'is_success':     success_input,
                     }
-                    save_path     = os.path.join(DATA_DIR, 'collaborations_final.csv')
-                    fresh_collabs = pd.read_csv(save_path)
-                    updated       = pd.concat([fresh_collabs, pd.DataFrame([new_row])],
-                                              ignore_index=True)
-                    updated.to_csv(save_path, index=False, encoding='utf-8-sig')
+                    save_campaign(new_row)   # P2-SQL1: Campaign 테이블에 INSERT
                     st.success(f"성과가 저장되었습니다! ({new_row['Collab_ID']})")
                     st.cache_data.clear()
 
