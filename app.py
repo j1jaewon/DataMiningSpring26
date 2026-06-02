@@ -254,14 +254,9 @@ st.markdown("""
     <div style='font-size:1.15rem;font-weight:800;color:#1a3a5c;letter-spacing:-0.3px;'>
         브랜드 ↔ 크리에이터, 양방향 매칭
     </div>
-    <div style='font-size:0.85rem;color:#666;margin-top:0.3rem;line-height:1.6;'>
-        976건의 실제 협업 데이터로 학습 &nbsp;·&nbsp; AI가 최적 파트너를 점수로 추천합니다
-        &nbsp;&nbsp;
-        <span style='color:#2d6a9f;font-weight:600;'>🎯 브랜드→크리에이터 추천</span>
-        &nbsp;|&nbsp;
-        <span style='color:#1a7a4a;font-weight:600;'>🔍 크리에이터→브랜드 탐색</span>
-        &nbsp;|&nbsp;
-        <span style='color:#b07c00;font-weight:600;'>📊 캠페인 성과 분석</span>
+    <div style='font-size:0.85rem;color:#666;margin-top:0.3rem;line-height:1.8;'>
+        976건의 실제 협업 데이터로 학습<br>
+        AI가 최적 파트너를 점수로 추천합니다
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -305,10 +300,10 @@ with tab_match:
 
 | 점수 | 의미 |
 |------|------|
-| 4.0 ~ 5.0 | 🟢 우수 — 브랜드 안전 |
-| 3.0 ~ 4.0 | 🟡 보통 — 검토 권장 |
-| 2.5 ~ 3.0 | 🟠 주의 — 선별 필요 |
-| 2.5 미만   | 🔴 제외 — 자동 필터링 |
+| 4.0 ~ 5.0 | 우수 — 브랜드 안전 |
+| 3.0 ~ 4.0 | 보통 — 검토 권장 |
+| 2.5 ~ 3.0 | 주의 — 선별 필요 |
+| 2.5 미만   | 제외 — 자동 필터링 |
 
 > 기본값 2.5 미만은 추천에서 자동 제외됩니다.
                     """)
@@ -326,12 +321,12 @@ with tab_match:
 
 | 등급 | 점수 | 캠페인 성공률 |
 |------|------|-------------|
-| 🏆 A | 0.9 이상 | **75.7%** |
-| 🥈 B | 0.8 ~ 0.9 | 58.8% |
-| 🥉 C | 0.7 ~ 0.8 | 46.6% |
-| ⬇️ D | 0.7 미만  | 20.0% |
+| A | 0.9 이상 | **75.7%** |
+| B | 0.8 ~ 0.9 | 58.8% |
+| C | 0.7 ~ 0.8 | 46.6% |
+| D | 0.7 미만  | 20.0% |
 
-> **등급 A 이상(0.8+) 크리에이터를 추천합니다.**
+> **등급 B 이상(0.8+) 크리에이터를 추천합니다.**
                     """)
 
 
@@ -390,11 +385,14 @@ with tab_match:
                             color  = GRADE_COLOR[grade]
                             bg     = GRADE_BG[grade]
                             border = GRADE_BORDER[grade]
-                            rank_n = int(row['Rank'])
-                            medal  = RANK_MEDAL.get(rank_n,
-                                         f"<span style='font-family:\"Noto Sans KR\",sans-serif;"
-                                         f"font-size:1.1rem;font-weight:700;color:#888;'>"
-                                         f"{rank_n}위</span>")
+                            rank_n     = int(row['Rank'])
+                            medal_icon = RANK_MEDAL.get(rank_n, "")
+                            medal = (
+                                f"<span style='font-family:\"Noto Sans KR\",sans-serif;"
+                                f"font-size:1rem;font-weight:700;color:#555;'>"
+                                f"{rank_n}위"
+                                f"{'&nbsp;' + medal_icon if medal_icon else ''}</span>"
+                            )
                             pos_reasons, neg_reasons = build_reasons(row, brand_row)
                             tags_html = reason_tags_html(pos_reasons, neg_reasons)
                             c_id       = row['Creator_ID']
@@ -408,7 +406,7 @@ with tab_match:
                                     f"border-top:3px solid {color};'>"
                                     f"<div style='display:flex;justify-content:space-between;"
                                     f"align-items:center;margin-bottom:0.5rem;'>"
-                                    f"<span style='font-size:1.5rem;'>{medal}</span>"
+                                    f"{medal}"
                                     f"<span style='background:{bg};color:{color};"
                                     f"border-radius:20px;padding:0.15rem 0.6rem;"
                                     f"font-size:0.75rem;font-weight:700;'>{GRADE_LABEL[grade]}</span>"
