@@ -17,7 +17,7 @@ from db_setup import (
 )
 
 st.set_page_config(
-    page_title="기업-크리에이터 매칭 추천 시스템",
+    page_title="Creator Match",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -35,13 +35,34 @@ PLOTLY_COLORS = ["#2d6a9f", "#1a7a4a", "#b07c00", "#c0392b", "#8e44ad", "#16a085
 # ── 전역 CSS ──────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap');
+
+html, body, [class*="css"], .stMarkdown, .stDataFrame,
+.stSelectbox, .stSlider, button, input, textarea {
+    font-family: 'Noto Sans KR', sans-serif !important;
+}
+
 /* 탭 스타일 */
 .stTabs [data-baseweb="tab-list"] { gap: 8px; }
 .stTabs [data-baseweb="tab"] {
     border-radius: 8px 8px 0 0;
     padding: 0.5rem 1.2rem;
     font-weight: 600;
+    font-family: 'Noto Sans KR', sans-serif !important;
 }
+
+/* 추천 받기 버튼 색상 통일 */
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #1a3a5c, #2d6a9f) !important;
+    border: none !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px;
+}
+.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #2d6a9f, #1a3a5c) !important;
+    box-shadow: 0 4px 14px rgba(45,106,159,0.35) !important;
+}
+
 /* 카드 hover */
 .creator-card {
     border: 1px solid #e0e8f0;
@@ -67,12 +88,15 @@ st.markdown("""
 .kpi-label { font-size: 0.82rem; color: #888; margin-top: 0.2rem; }
 /* 섹션 헤더 */
 .section-title {
-    font-size: 1.05rem;
+    font-size: 0.92rem;
     font-weight: 700;
-    color: #1a3a5c;
-    margin: 1.2rem 0 0.6rem;
-    padding-left: 0.6rem;
-    border-left: 3px solid #2d6a9f;
+    color: #4a6080;
+    margin: 1.4rem 0 0.5rem;
+    padding: 0.3rem 0.7rem;
+    background: #f0f4f8;
+    border-radius: 6px;
+    display: inline-block;
+    letter-spacing: 0.2px;
 }
 /* 사유 태그 */
 .reason-tag {
@@ -167,11 +191,11 @@ def plotly_score_bar(row):
         textposition='outside',
     ))
     fig.update_layout(
-        height=180, margin=dict(l=0, r=40, t=10, b=10),
-        xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
+        height=180, margin=dict(l=0, r=50, t=10, b=10),
+        xaxis=dict(range=[0, 1.15], showgrid=False, visible=False),
         yaxis=dict(showgrid=False),
         plot_bgcolor='white', paper_bgcolor='white',
-        font=dict(size=11),
+        font=dict(family='Noto Sans KR, sans-serif', size=11),
     )
     return fig
 
@@ -179,13 +203,40 @@ def plotly_score_bar(row):
 st.markdown("""
 <div style='background: linear-gradient(135deg, #1a3a5c 0%, #2d6a9f 100%);
             padding: 2rem 2.5rem; border-radius: 14px; margin-bottom: 1.5rem;
-            box-shadow: 0 4px 20px rgba(26,58,92,0.18);'>
-    <h1 style='color: white; margin: 0; font-size: 1.9rem; letter-spacing:-0.5px;'>
-        기업-크리에이터 매칭 추천 시스템
-    </h1>
-    <p style='color: #a8c8e8; margin: 0.4rem 0 0; font-size: 0.9rem;'>
-        KAIST BIZ &nbsp;|&nbsp; 비즈니스 애널리틱스 2026 &nbsp;|&nbsp; CBF + CF 하이브리드 추천
-    </p>
+            box-shadow: 0 4px 20px rgba(26,58,92,0.18);
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;'>
+    <div>
+        <div style='color:#a8c8e8; font-size:0.75rem; font-weight:600; letter-spacing:2px;
+                    text-transform:uppercase; margin-bottom:0.35rem;'>
+            KAIST BIZ &nbsp;·&nbsp; 비즈니스 애널리틱스 2026
+        </div>
+        <h1 style='color: white; margin: 0; font-size: 2.2rem; font-weight:800;
+                   letter-spacing:-1px; line-height:1.15;'>
+            Creator <span style='color:#7ec8f0;'>Match</span>
+        </h1>
+        <p style='color: #c8dff0; margin: 0.45rem 0 0; font-size: 0.92rem; font-weight:400;'>
+            AI 기반 기업·크리에이터 매칭 플랫폼 &nbsp;—&nbsp; CBF + CF 하이브리드 추천
+        </p>
+    </div>
+    <div style='text-align:right;'>
+        <div style='color:white; font-size:0.78rem; opacity:0.7; margin-bottom:0.3rem;'>
+            데이터 현황
+        </div>
+        <div style='display:flex; gap:1.2rem;'>
+            <div style='text-align:center;'>
+                <div style='color:white; font-size:1.3rem; font-weight:800;'>490</div>
+                <div style='color:#a8c8e8; font-size:0.7rem;'>크리에이터</div>
+            </div>
+            <div style='text-align:center;'>
+                <div style='color:white; font-size:1.3rem; font-weight:800;'>100</div>
+                <div style='color:#a8c8e8; font-size:0.7rem;'>브랜드</div>
+            </div>
+            <div style='text-align:center;'>
+                <div style='color:white; font-size:1.3rem; font-weight:800;'>976</div>
+                <div style='color:#a8c8e8; font-size:0.7rem;'>협업 이력</div>
+            </div>
+        </div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -400,6 +451,7 @@ with tab_match:
                 hist_data = pd.cut(brand_scores['matching_score'],
                                    bins=bins, labels=labels).value_counts().sort_index()
 
+                y_max = int(hist_data.max() * 1.25) + 1
                 fig_hist = go.Figure(go.Bar(
                     x=hist_data.index.tolist(),
                     y=hist_data.values,
@@ -408,11 +460,12 @@ with tab_match:
                     textposition='outside',
                 ))
                 fig_hist.update_layout(
-                    height=260, margin=dict(l=0, r=0, t=20, b=0),
+                    height=240, margin=dict(l=0, r=0, t=20, b=0),
                     plot_bgcolor='white', paper_bgcolor='white',
-                    yaxis=dict(showgrid=True, gridcolor='#f0f0f0'),
-                    xaxis=dict(showgrid=False),
-                    font=dict(size=12),
+                    yaxis=dict(range=[0, y_max], showgrid=True,
+                               gridcolor='#f0f0f0', tickfont=dict(size=11)),
+                    xaxis=dict(showgrid=False, tickfont=dict(size=11)),
+                    font=dict(family='Noto Sans KR, sans-serif', size=12),
                 )
                 # 추천된 크리에이터 범위 표시
                 top_ids = top_df['Creator_ID'].tolist()
@@ -517,19 +570,21 @@ with tab_match:
                     "#2d6a9f" if r else "#b0c8d8"
                     for r in comp_df['_current']
                 ]
+                comp_h = max(180, len(comp_df) * 44 + 40)
                 fig_comp = go.Figure(go.Bar(
-                    x=comp_df['브랜드'],
-                    y=comp_df['평균 매칭점수'],
+                    y=comp_df['브랜드'],
+                    x=comp_df['평균 매칭점수'],
+                    orientation='h',
                     marker_color=bar_colors,
                     text=[f"{v:.3f}" for v in comp_df['평균 매칭점수']],
                     textposition='outside',
                 ))
                 fig_comp.update_layout(
-                    height=280, margin=dict(l=0, r=0, t=20, b=0),
+                    height=comp_h, margin=dict(l=0, r=60, t=10, b=10),
                     plot_bgcolor='white', paper_bgcolor='white',
-                    yaxis=dict(range=[0, 1.0], showgrid=True, gridcolor='#f0f0f0'),
-                    xaxis=dict(showgrid=False),
-                    font=dict(size=12),
+                    xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
+                    yaxis=dict(showgrid=False, autorange='reversed'),
+                    font=dict(family='Noto Sans KR, sans-serif', size=12),
                 )
                 col_c1, col_c2 = st.columns([2, 1])
                 with col_c1:
@@ -655,12 +710,13 @@ with tab_explore:
                 text=[f"{v:.2f}" for v in cs['matching_score']],
                 textposition='outside',
             ))
+            exp_h = max(200, len(cs) * 36 + 60)
             fig_exp.update_layout(
-                height=340, margin=dict(l=0, r=50, t=10, b=10),
+                height=exp_h, margin=dict(l=0, r=50, t=10, b=10),
                 plot_bgcolor='white', paper_bgcolor='white',
                 xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
                 yaxis=dict(showgrid=False, autorange='reversed'),
-                font=dict(size=11),
+                font=dict(family='Noto Sans KR, sans-serif', size=11),
             )
             st.plotly_chart(fig_exp, use_container_width=True,
                             config={'displayModeBar': False})
@@ -717,12 +773,13 @@ with tab_dashboard:
             text=[f"{v}%" for v in ind_stats['성공률(%)']],
             textposition='outside',
         ))
+        ind_h = max(200, len(ind_stats) * 36 + 60)
         fig_ind.update_layout(
-            height=320, margin=dict(l=0, r=50, t=10, b=0),
+            height=ind_h, margin=dict(l=0, r=50, t=10, b=0),
             plot_bgcolor='white', paper_bgcolor='white',
             xaxis=dict(range=[0, 100], showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
-            font=dict(size=12),
+            font=dict(family='Noto Sans KR, sans-serif', size=12),
         )
         st.plotly_chart(fig_ind, use_container_width=True,
                         config={'displayModeBar': False})
@@ -743,12 +800,13 @@ with tab_dashboard:
             text=[f"{v}%" for v in cat_ctr['평균CTR(%)']],
             textposition='outside',
         ))
+        ctr_h = max(200, len(cat_ctr) * 36 + 60)
         fig_ctr.update_layout(
-            height=320, margin=dict(l=0, r=50, t=10, b=0),
+            height=ctr_h, margin=dict(l=0, r=50, t=10, b=0),
             plot_bgcolor='white', paper_bgcolor='white',
             xaxis=dict(showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
-            font=dict(size=12),
+            font=dict(family='Noto Sans KR, sans-serif', size=12),
         )
         st.plotly_chart(fig_ctr, use_container_width=True,
                         config={'displayModeBar': False})
@@ -770,12 +828,13 @@ with tab_dashboard:
             marker_color="#1a7a4a",
             text=top_c['성공횟수'], textposition='outside',
         ))
+        top_h = max(200, len(top_c) * 36 + 60)
         fig_top.update_layout(
-            height=320, margin=dict(l=0, r=40, t=10, b=0),
+            height=top_h, margin=dict(l=0, r=40, t=10, b=0),
             plot_bgcolor='white', paper_bgcolor='white',
             xaxis=dict(showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
-            font=dict(size=12),
+            font=dict(family='Noto Sans KR, sans-serif', size=12),
         )
         st.plotly_chart(fig_top, use_container_width=True,
                         config={'displayModeBar': False})
@@ -797,7 +856,7 @@ with tab_dashboard:
             height=320, margin=dict(l=0, r=0, t=10, b=0),
             plot_bgcolor='#fafafa', paper_bgcolor='white',
             legend=dict(title='', orientation='h', y=1.08),
-            font=dict(size=12),
+            font=dict(family='Noto Sans KR, sans-serif', size=12),
         )
         st.plotly_chart(fig_sc, use_container_width=True,
                         config={'displayModeBar': False})
