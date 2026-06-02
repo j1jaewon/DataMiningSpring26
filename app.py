@@ -220,7 +220,7 @@ st.markdown(
     "<div style='font-size:0.9rem;color:#c8dff0;margin-top:0.7rem;line-height:1.75;'>"
     "브랜드에는 맞는 크리에이터를, 크리에이터에는 맞는 브랜드를<br>"
     "<span style='font-size:0.8rem;color:#90b8d8;'>"
-    "976건의 실제 협업 데이터로 학습한 AI가 최적 파트너를 점수로 추천합니다"
+    "976건의 실제 협업 데이터를 기반으로 최적의 파트너를 점수로 추천합니다"
     "</span>"
     "</div>"
     "</div>"
@@ -257,7 +257,7 @@ tab_match, tab_explore, tab_dashboard = st.tabs([
 with tab_match:
 
     st.markdown("<div class='section-title'>브랜드 조건 입력</div>", unsafe_allow_html=True)
-    st.caption("브랜드 정보를 선택하면 AI가 최적의 크리에이터를 매칭 점수 순으로 추천합니다.")
+    st.caption("브랜드 정보를 선택하면 실제 협업 데이터를 기반으로 최적의 크리에이터를 매칭 점수 순으로 추천합니다.")
     with st.container():
         col1, col2, col3 = st.columns(3)
         with col1:
