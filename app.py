@@ -187,19 +187,22 @@ def reason_tags_html(pos, neg):
 def plotly_score_bar(row):
     labels = ['카테고리(CBF)', '조건매칭(CBF)', '협업필터링(CF)']
     values = [row['category_score'], row['context_score'], row['cf_score']]
-    colors = ['#2d6a9f', '#1a7a4a', '#b07c00']
+    colors = ['#6a9ec8', '#4aaa7a', '#e8c97a']
     fig = go.Figure(go.Bar(
         x=values, y=labels, orientation='h',
         marker_color=colors,
+        marker_line_width=0,
         text=[f"{v:.2f}" for v in values],
         textposition='outside',
+        width=0.45,
     ))
     fig.update_layout(
-        height=180, margin=dict(l=0, r=50, t=10, b=10),
+        height=160, margin=dict(l=0, r=50, t=10, b=10),
         xaxis=dict(range=[0, 1.15], showgrid=False, visible=False),
         yaxis=dict(showgrid=False),
         plot_bgcolor='white', paper_bgcolor='white',
         font=dict(family='Noto Sans KR, sans-serif', size=11),
+        bargap=0.5,
     )
     return fig
 
@@ -239,6 +242,36 @@ st.markdown("""
                 <div style='color:white; font-size:1.3rem; font-weight:800;'>976</div>
                 <div style='color:#a8c8e8; font-size:0.7rem;'>협업 이력</div>
             </div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── 소개 문구 ─────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style='display:flex;gap:1.2rem;margin:0.2rem 0 1.2rem;flex-wrap:wrap;'>
+    <div style='flex:1;min-width:200px;background:#f5f8fc;border-radius:10px;
+                padding:0.75rem 1rem;border-left:3px solid #2d6a9f;'>
+        <span style='font-size:1.1rem;'>🎯</span>
+        <span style='font-weight:700;color:#1a3a5c;font-size:0.88rem;margin-left:0.4rem;'>브랜드 매칭</span>
+        <div style='font-size:0.79rem;color:#666;margin-top:0.2rem;line-height:1.5;'>
+            브랜드를 선택하면 카테고리·오디언스·협업 이력을<br>종합해 최적 크리에이터를 자동 추천합니다.
+        </div>
+    </div>
+    <div style='flex:1;min-width:200px;background:#f5f8fc;border-radius:10px;
+                padding:0.75rem 1rem;border-left:3px solid #1a7a4a;'>
+        <span style='font-size:1.1rem;'>🔍</span>
+        <span style='font-weight:700;color:#1a3a5c;font-size:0.88rem;margin-left:0.4rem;'>크리에이터 탐색</span>
+        <div style='font-size:0.79rem;color:#666;margin-top:0.2rem;line-height:1.5;'>
+            크리에이터 관점에서 협업 가능성이 높은<br>브랜드를 역방향으로 조회합니다.
+        </div>
+    </div>
+    <div style='flex:1;min-width:200px;background:#f5f8fc;border-radius:10px;
+                padding:0.75rem 1rem;border-left:3px solid #b07c00;'>
+        <span style='font-size:1.1rem;'>📊</span>
+        <span style='font-weight:700;color:#1a3a5c;font-size:0.88rem;margin-left:0.4rem;'>성과 대시보드</span>
+        <div style='font-size:0.79rem;color:#666;margin-top:0.2rem;line-height:1.5;'>
+            업종별 성공률, 카테고리별 CTR 등<br>실제 캠페인 성과 데이터를 분석합니다.
         </div>
     </div>
 </div>
@@ -490,6 +523,7 @@ with tab_match:
                 " JOIN Brand b ON camp.Brand_ID = b.Brand_ID"
                 " JOIN Creator c ON camp.Creator_ID = c.Creator_ID"
                 f" WHERE b.Industry = ? AND camp.Creator_ID IN ({placeholders})"
+                " AND camp.is_success = 'Y'"
                 " LIMIT 5"
             )
             cases = pd.read_sql(
@@ -499,15 +533,32 @@ with tab_match:
             conn.close()
 
             if cases.empty:
-                st.info("동일 업종의 유사 협업 사례가 없습니다.")
+                st.info("동일 업종의 성공 협업 사례가 없습니다.")
             else:
                 with st.container(border=True):
+                    st.markdown(
+                        "<div style='display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1fr;"
+                        "gap:0.3rem;padding:0.35rem 0.5rem;background:#f5f7fa;"
+                        "border-radius:8px;font-size:0.75rem;font-weight:700;color:#888;"
+                        "margin-bottom:0.4rem;'>"
+                        "<span>기업</span><span>크리에이터</span>"
+                        "<span style='text-align:right;'>노출</span>"
+                        "<span style='text-align:right;'>CTR</span>"
+                        "<span style='text-align:right;'>CVR</span>"
+                        "</div>",
+                        unsafe_allow_html=True,
+                    )
                     for _, c in cases.iterrows():
-                        icon = "✅" if c['is_success'] == 'Y' else "❌"
                         st.markdown(
-                            f"{icon} **{c['Brand_Name']}** + **{c['Creator_Name']}** → "
-                            f"노출 {c['Impressions']:,}회 &nbsp;|&nbsp; "
-                            f"CTR **{c['CTR']}%** &nbsp;|&nbsp; CVR **{c['CVR']}%**"
+                            "<div style='display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1fr;"
+                            f"gap:0.3rem;padding:0.3rem 0.5rem;font-size:0.82rem;border-bottom:1px solid #f0f0f0;'>"
+                            f"<span style='font-weight:600;color:#1a3a5c;'>✅ {c['Brand_Name']}</span>"
+                            f"<span style='color:#444;'>{c['Creator_Name']}</span>"
+                            f"<span style='text-align:right;color:#555;'>{c['Impressions']:,}</span>"
+                            f"<span style='text-align:right;font-weight:600;color:#2d6a9f;'>{c['CTR']}%</span>"
+                            f"<span style='text-align:right;font-weight:600;color:#1a7a4a;'>{c['CVR']}%</span>"
+                            "</div>",
+                            unsafe_allow_html=True,
                         )
 
             # ⑤ 같은 업종 브랜드 비교
