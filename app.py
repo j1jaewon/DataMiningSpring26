@@ -7,15 +7,16 @@ warnings.filterwarnings('ignore')
 st.set_page_config(page_title="기업-크리에이터 매칭 추천 시스템", layout="wide")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = BASE_DIR
 
 # ── 데이터 로드 ──────────────────────────────────────────────────────────────
 @st.cache_data
 def load_data():
-    creators = pd.read_csv(os.path.join(BASE_DIR, 'creators_clean.csv'))
-    brands   = pd.read_csv(os.path.join(BASE_DIR, 'brands_100.csv'))
-    collabs  = pd.read_csv(os.path.join(BASE_DIR, 'collaborations_final.csv'))
-    ratings  = pd.read_csv(os.path.join(BASE_DIR, 'ratings_clean.csv'))
-    sim_path = os.path.join(BASE_DIR, 'creator_similarity.csv')
+    creators = pd.read_csv(os.path.join(DATA_DIR, 'creators_clean.csv'))
+    brands   = pd.read_csv(os.path.join(DATA_DIR, 'brands_100.csv'))
+    collabs  = pd.read_csv(os.path.join(DATA_DIR, 'collaborations_final.csv'))
+    ratings  = pd.read_csv(os.path.join(DATA_DIR, 'ratings_clean.csv'))
+    sim_path = os.path.join(DATA_DIR, 'creator_similarity.csv')
     if os.path.exists(sim_path):
         similarity = pd.read_csv(sim_path)
     else:
@@ -332,7 +333,7 @@ if run or 'last_brand_id' in st.session_state:
                     'CVR':            0,
                     'is_success':     success_input,
                 }
-                save_path = os.path.join(BASE_DIR, 'collaborations_final.csv')
+                save_path = os.path.join(DATA_DIR, 'collaborations_final.csv')
                 updated = pd.concat([collabs, pd.DataFrame([new_row])], ignore_index=True)
                 updated.to_csv(save_path, index=False, encoding='utf-8-sig')
                 st.success(f"성과가 저장되었습니다! ({new_row['Collab_ID']})")
