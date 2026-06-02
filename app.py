@@ -479,8 +479,18 @@ with tab_match:
             top_creator_ids = top_df['Creator_ID'].tolist()
             placeholders    = ','.join('?' * len(top_creator_ids))
             conn = get_conn()
+            _similar_sql = (
+                "SELECT camp.Brand_ID, camp.Creator_ID, b.Brand_Name,"
+                " c.Channel_Name AS Creator_Name, camp.Budget_Spent,"
+                " camp.Impressions, camp.CTR, camp.CVR, camp.is_success"
+                " FROM Campaign camp"
+                " JOIN Brand b ON camp.Brand_ID = b.Brand_ID"
+                " JOIN Creator c ON camp.Creator_ID = c.Creator_ID"
+                f" WHERE b.Industry = ? AND camp.Creator_ID IN ({placeholders})"
+                " LIMIT 5"
+            )
             cases = pd.read_sql(
-                SQL_SIMILAR_CASES.format(placeholders=placeholders),
+                _similar_sql,
                 conn, params=[brand_row['Industry']] + top_creator_ids,
             )
             conn.close()
@@ -616,12 +626,15 @@ with tab_explore:
         ecol1, ecol2, ecol3 = st.columns(3)
         with ecol1:
             cat_filter = st.selectbox(
-                "카테고리", ["전체"] + sorted(creators['Category'].unique().tolist()))
+                "카테고리", ["전체"] + sorted(creators['Category'].unique().tolist()),
+                key="explore_cat_filter")
         with ecol2:
             plat_filter = st.selectbox(
-                "플랫폼", ["전체"] + sorted(creators['Platform'].unique().tolist()))
+                "플랫폼", ["전체"] + sorted(creators['Platform'].unique().tolist()),
+                key="explore_plat_filter")
         with ecol3:
-            min_risk = st.slider("최소 Risk Score", 1.0, 5.0, 2.5, 0.5)
+            min_risk = st.slider("최소 Risk Score", 1.0, 5.0, 2.5, 0.5,
+                                 key="explore_min_risk")
 
     fc = creators.copy()
     if cat_filter  != "전체": fc = fc[fc['Category'] == cat_filter]
@@ -631,7 +644,8 @@ with tab_explore:
     if fc.empty:
         st.warning("조건에 맞는 크리에이터가 없습니다.")
     else:
-        sel_creator = st.selectbox("크리에이터 선택", fc['Channel_Name'].tolist())
+        sel_creator = st.selectbox("크리에이터 선택", fc['Channel_Name'].tolist(),
+                                   key="explore_creator_select")
         sel_cid_exp = fc[fc['Channel_Name'] == sel_creator].iloc[0]['Creator_ID']
         ci          = fc[fc['Creator_ID'] == sel_cid_exp].iloc[0]
 
