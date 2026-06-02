@@ -642,14 +642,21 @@ with tab_match:
                     font=dict(family='Noto Sans KR, sans-serif', size=12),
                     bargap=0.5,
                 )
-                col_c1, col_c2 = st.columns([2, 1])
+                col_c1, col_c2 = st.columns([3, 2])
                 with col_c1:
                     st.plotly_chart(fig_comp, use_container_width=True,
                                     config={'displayModeBar': False})
                 with col_c2:
+                    disp_df = comp_df[['브랜드', '평균 매칭점수', 'Top 크리에이터']].copy()
+                    disp_df['평균 매칭점수'] = disp_df['평균 매칭점수'].map(lambda v: f"{v:.3f}")
                     st.dataframe(
-                        comp_df[['브랜드', '평균 매칭점수', 'Top 크리에이터']],
-                        use_container_width=True, hide_index=True
+                        disp_df,
+                        use_container_width=True, hide_index=True,
+                        column_config={
+                            '브랜드':      st.column_config.TextColumn(width="medium"),
+                            '평균 매칭점수': st.column_config.TextColumn(width="small"),
+                            'Top 크리에이터': st.column_config.TextColumn(width="medium"),
+                        }
                     )
 
             # ⑥ 캠페인 성과 입력
@@ -700,8 +707,6 @@ with tab_explore:
     st.markdown("<div class='section-title'>크리에이터 탐색</div>", unsafe_allow_html=True)
     st.caption("크리에이터 관점에서 협업 가능성이 높은 브랜드를 역방향으로 조회합니다.")
 
-    st.markdown("<div style='background:#f8fafc;border-radius:10px;padding:1rem 1.2rem 0.2rem;margin-bottom:0.8rem;'>",
-                unsafe_allow_html=True)
     with st.container():
         ecol1, ecol2, ecol3 = st.columns(3)
         with ecol1:
@@ -715,7 +720,6 @@ with tab_explore:
         with ecol3:
             min_risk = st.slider("최소 Risk Score", 1.0, 5.0, 2.5, 0.5,
                                  key="explore_min_risk")
-    st.markdown("</div>", unsafe_allow_html=True)
 
     fc = creators.copy()
     if cat_filter  != "전체": fc = fc[fc['Category'] == cat_filter]
@@ -772,12 +776,20 @@ with tab_explore:
         cs['등급']    = cs.get('recommendation_grade', cs['matching_score'].apply(grade_label))
         cs['순위']    = range(1, len(cs) + 1)
 
+        cs['매칭점수'] = cs['matching_score'].map(lambda v: f"{v:.3f}")
         col_table, col_bar = st.columns([1, 1])
         with col_table:
             st.dataframe(
-                cs[['순위', '브랜드', '업종', '월예산', 'matching_score', '등급']].rename(
-                    columns={'matching_score': '매칭점수'}),
-                use_container_width=True, hide_index=True
+                cs[['순위', '브랜드', '업종', '월예산', '매칭점수', '등급']],
+                use_container_width=True, hide_index=True,
+                column_config={
+                    '순위':   st.column_config.NumberColumn(width="small"),
+                    '브랜드': st.column_config.TextColumn(width="medium"),
+                    '업종':   st.column_config.TextColumn(width="small"),
+                    '월예산': st.column_config.NumberColumn(width="small", format="%d"),
+                    '매칭점수': st.column_config.TextColumn(width="small"),
+                    '등급':   st.column_config.TextColumn(width="small"),
+                }
             )
         with col_bar:
             fig_exp = go.Figure(go.Bar(
