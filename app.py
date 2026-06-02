@@ -262,15 +262,13 @@ with tab_match:
         col1, col2, col3 = st.columns(3)
         with col1:
             brand_options = brands[['Brand_ID', 'Brand_Name', 'Industry']].copy()
-            brand_display_raw = brand_options.apply(
-                lambda r: (f"{r['Brand_Name']} ({r['Industry']})", r.name), axis=1
+            brand_options = brand_options.sort_values('Brand_Name').reset_index(drop=True)
+            brand_display = brand_options.apply(
+                lambda r: f"{r['Brand_Name']} ({r['Industry']})", axis=1
             ).tolist()
-            brand_display_sorted = sorted(brand_display_raw, key=lambda x: x[0])
-            brand_display = [d for d, _ in brand_display_sorted]
-            brand_orig_idx = [i for _, i in brand_display_sorted]
             selected_idx = st.selectbox("브랜드 선택", range(len(brand_display)),
                                         format_func=lambda i: brand_display[i])
-            brand_id  = brand_options.iloc[brand_orig_idx[selected_idx]]['Brand_ID']
+            brand_id  = brand_options.iloc[selected_idx]['Brand_ID']
             brand_row = brands[brands['Brand_ID'] == brand_id].iloc[0]
 
         with col2:
@@ -629,45 +627,6 @@ with tab_match:
                         }
                     )
 
-            # ⑥ 캠페인 성과 입력
-            st.markdown("<div class='section-title'>캠페인 성과 입력</div>",
-                        unsafe_allow_html=True)
-            with st.container():
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    creator_options = top_df.apply(
-                        lambda r: f"{RANK_MEDAL.get(int(r['Rank']),str(int(r['Rank']))+'위')} "
-                                  f"{r['Channel_Name']}", axis=1
-                    ).tolist()
-                    sel_label = st.selectbox("크리에이터 선택", creator_options)
-                    sel_idx   = creator_options.index(sel_label)
-                    sel_cid   = top_df.iloc[sel_idx]['Creator_ID']
-                with col2:
-                    impressions_input = st.number_input("실제 노출수", min_value=0, step=1000)
-                with col3:
-                    ctr_input = st.number_input("CTR (%)", min_value=0.0,
-                                                max_value=100.0, step=0.1, format="%.2f")
-                with col4:
-                    success_input = st.selectbox("성공 여부", ["Y", "N"])
-
-                if st.button("💾 성과 저장", type="secondary", use_container_width=True):
-                    new_row = {
-                        'Collab_ID':      f"CB_NEW_{pd.Timestamp.now().strftime('%Y%m%d%H%M%S')}",
-                        'Brand_ID':       brand_id,
-                        'Creator_ID':     sel_cid,
-                        'Campaign_Start': str(pd.Timestamp.now().date()),
-                        'Campaign_End':   str(pd.Timestamp.now().date()),
-                        'Budget_Spent':   0,
-                        'Impressions':    impressions_input,
-                        'Clicks':         int(impressions_input * ctr_input / 100),
-                        'CTR':            ctr_input,
-                        'Conversions':    0,
-                        'CVR':            0,
-                        'is_success':     success_input,
-                    }
-                    save_campaign(new_row)
-                    st.success(f"성과가 저장되었습니다! ({new_row['Collab_ID']})")
-                    st.cache_data.clear()
 
 
 # ════════════════════════════════════════════════════════════════════════════
