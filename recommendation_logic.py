@@ -65,9 +65,20 @@ def calc_context_score(brand, creator):
 
 # ===== STEP 3: CF — 협업 필터링 점수 =====
 def build_cf_matrix(ratings):
+    if ratings is None or ratings.empty:
+        empty = pd.DataFrame(dtype=float)
+        return empty, empty
+    ratings = ratings.copy()
+    ratings['Score'] = pd.to_numeric(ratings['Score'], errors='coerce').fillna(0)
     rating_matrix = ratings.pivot_table(
         index='Brand_ID', columns='Creator_ID', values='Score', aggfunc='mean'
-    ).fillna(0)
+    ).fillna(0).astype(float)
+    if rating_matrix.empty or rating_matrix.shape[0] < 2:
+        empty_sim = pd.DataFrame(
+            np.zeros((len(rating_matrix), len(rating_matrix))),
+            index=rating_matrix.index, columns=rating_matrix.index
+        )
+        return rating_matrix, empty_sim
     brand_similarity = pd.DataFrame(
         cosine_similarity(rating_matrix),
         index=rating_matrix.index,
