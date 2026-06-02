@@ -387,7 +387,8 @@ with tab_match:
                                 with st.expander("📊 상세 분석"):
                                     st.plotly_chart(plotly_score_bar(row),
                                                     use_container_width=True,
-                                                    config={'displayModeBar': False})
+                                                    config={'displayModeBar': False},
+                                                    key=f"score_bar_{brand_id}_{c_id}")
                                     past = collabs[collabs['Creator_ID'] == c_id][
                                         ['Brand_ID', 'CTR', 'CVR', 'is_success']
                                     ].copy()
