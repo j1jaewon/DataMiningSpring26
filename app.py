@@ -249,30 +249,19 @@ st.markdown("""
 
 # ── 소개 문구 ─────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style='display:flex;gap:1.2rem;margin:0.2rem 0 1.2rem;flex-wrap:wrap;'>
-    <div style='flex:1;min-width:200px;background:#f5f8fc;border-radius:10px;
-                padding:0.75rem 1rem;border-left:3px solid #2d6a9f;'>
-        <span style='font-size:1.1rem;'>🎯</span>
-        <span style='font-weight:700;color:#1a3a5c;font-size:0.88rem;margin-left:0.4rem;'>브랜드 매칭</span>
-        <div style='font-size:0.79rem;color:#666;margin-top:0.2rem;line-height:1.5;'>
-            브랜드를 선택하면 카테고리·오디언스·협업 이력을<br>종합해 최적 크리에이터를 자동 추천합니다.
-        </div>
+<div style='background:#f5f8fc;border-radius:12px;padding:1rem 1.5rem;
+            margin:0.2rem 0 1.2rem;border-left:4px solid #2d6a9f;'>
+    <div style='font-size:1.15rem;font-weight:800;color:#1a3a5c;letter-spacing:-0.3px;'>
+        브랜드 ↔ 크리에이터, 양방향 매칭
     </div>
-    <div style='flex:1;min-width:200px;background:#f5f8fc;border-radius:10px;
-                padding:0.75rem 1rem;border-left:3px solid #1a7a4a;'>
-        <span style='font-size:1.1rem;'>🔍</span>
-        <span style='font-weight:700;color:#1a3a5c;font-size:0.88rem;margin-left:0.4rem;'>크리에이터 탐색</span>
-        <div style='font-size:0.79rem;color:#666;margin-top:0.2rem;line-height:1.5;'>
-            크리에이터 관점에서 협업 가능성이 높은<br>브랜드를 역방향으로 조회합니다.
-        </div>
-    </div>
-    <div style='flex:1;min-width:200px;background:#f5f8fc;border-radius:10px;
-                padding:0.75rem 1rem;border-left:3px solid #b07c00;'>
-        <span style='font-size:1.1rem;'>📊</span>
-        <span style='font-weight:700;color:#1a3a5c;font-size:0.88rem;margin-left:0.4rem;'>성과 대시보드</span>
-        <div style='font-size:0.79rem;color:#666;margin-top:0.2rem;line-height:1.5;'>
-            업종별 성공률, 카테고리별 CTR 등<br>실제 캠페인 성과 데이터를 분석합니다.
-        </div>
+    <div style='font-size:0.85rem;color:#666;margin-top:0.3rem;line-height:1.6;'>
+        976건의 실제 협업 데이터로 학습 &nbsp;·&nbsp; AI가 최적 파트너를 점수로 추천합니다
+        &nbsp;&nbsp;
+        <span style='color:#2d6a9f;font-weight:600;'>🎯 브랜드→크리에이터 추천</span>
+        &nbsp;|&nbsp;
+        <span style='color:#1a7a4a;font-weight:600;'>🔍 크리에이터→브랜드 탐색</span>
+        &nbsp;|&nbsp;
+        <span style='color:#b07c00;font-weight:600;'>📊 캠페인 성과 분석</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -303,10 +292,48 @@ with tab_match:
             brand_row = brands[brands['Brand_ID'] == brand_id].iloc[0]
 
         with col2:
-            risk_threshold = st.slider("최소 Risk Score", 1.0, 5.0, 2.5, 0.5,
-                                       help="이 값 미만 크리에이터는 자동 제외")
+            rc1, rc2 = st.columns([8, 1])
+            with rc1:
+                risk_threshold = st.slider("최소 Risk Score", 1.0, 5.0, 2.5, 0.5)
+            with rc2:
+                st.markdown("<div style='height:1.6rem;'></div>", unsafe_allow_html=True)
+                with st.popover("❓"):
+                    st.markdown("""
+**Risk Score란?**
+
+크리에이터의 콘텐츠 신뢰도·브랜드 안전성 지수입니다.
+
+| 점수 | 의미 |
+|------|------|
+| 4.0 ~ 5.0 | 🟢 우수 — 브랜드 안전 |
+| 3.0 ~ 4.0 | 🟡 보통 — 검토 권장 |
+| 2.5 ~ 3.0 | 🟠 주의 — 선별 필요 |
+| 2.5 미만   | 🔴 제외 — 자동 필터링 |
+
+> 기본값 2.5 미만은 추천에서 자동 제외됩니다.
+                    """)
         with col3:
-            top_n = st.slider("추천 크리에이터 수", 1, 10, 3)
+            gc1, gc2 = st.columns([8, 1])
+            with gc1:
+                top_n = st.slider("추천 크리에이터 수", 1, 10, 3)
+            with gc2:
+                st.markdown("<div style='height:1.6rem;'></div>", unsafe_allow_html=True)
+                with st.popover("❓"):
+                    st.markdown("""
+**추천 등급 기준**
+
+매칭 점수 = 카테고리×0.3 + 조건매칭×0.3 + 협업필터링×0.4
+
+| 등급 | 점수 | 캠페인 성공률 |
+|------|------|-------------|
+| 🏆 A | 0.9 이상 | **75.7%** |
+| 🥈 B | 0.8 ~ 0.9 | 58.8% |
+| 🥉 C | 0.7 ~ 0.8 | 46.6% |
+| ⬇️ D | 0.7 미만  | 20.0% |
+
+> **등급 A 이상(0.8+) 크리에이터를 추천합니다.**
+                    """)
+
 
         st.markdown(f"""
         <div style='background:linear-gradient(90deg,#f0f4f8,#e8f0fb);
