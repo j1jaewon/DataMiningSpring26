@@ -50,6 +50,13 @@
 ## Streamlit 사용법 (승모)
 
 ```python
-from recommendation_logic import recommend
-result = recommend('BR_00001')  # Top 3 반환
+import pandas as pd
+from recommendation_logic import build_similarity, recommend
+
+creators = pd.read_csv('creators_clean.csv')
+brands   = pd.read_csv('brands_100.csv')
+ratings  = pd.read_csv('ratings_clean.csv')
+
+similarity_df = build_similarity(creators, brands, ratings)
+result = recommend('BR_00001', similarity_df, creators)  # Top 3 반환
 ```
