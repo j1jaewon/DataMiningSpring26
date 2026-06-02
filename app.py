@@ -330,7 +330,11 @@ with tab_match:
                             color  = GRADE_COLOR[grade]
                             bg     = GRADE_BG[grade]
                             border = GRADE_BORDER[grade]
-                            medal  = RANK_MEDAL.get(int(row['Rank']), f"{int(row['Rank'])}위")
+                            rank_n = int(row['Rank'])
+                            medal  = RANK_MEDAL.get(rank_n,
+                                         f"<span style='font-family:\"Noto Sans KR\",sans-serif;"
+                                         f"font-size:1.1rem;font-weight:700;color:#888;'>"
+                                         f"{rank_n}위</span>")
                             pos_reasons, neg_reasons = build_reasons(row, brand_row)
                             tags_html = reason_tags_html(pos_reasons, neg_reasons)
                             c_id       = row['Creator_ID']
@@ -417,8 +421,8 @@ with tab_match:
                 bins   = [0, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
                 labels = ['~0.4', '0.4~0.5', '0.5~0.6', '0.6~0.7',
                           '0.7~0.8', '0.8~0.9', '0.9~']
-                bin_colors = ['#e8e8e8','#d0d0d0','#b0c8d8','#8aabcc',
-                              '#b07c00','#2d6a9f','#1a7a4a']
+                bin_colors = ['#e4e4e4','#d4d4d4','#c4d4e4','#a0bcd4',
+                              '#e8c97a','#6a9ec8','#4aaa7a']
                 hist_data = pd.cut(brand_scores['matching_score'],
                                    bins=bins, labels=labels).value_counts().sort_index()
 
@@ -427,24 +431,19 @@ with tab_match:
                     x=hist_data.index.tolist(),
                     y=hist_data.values,
                     marker_color=bin_colors,
+                    marker_line_width=0,
                     text=hist_data.values,
                     textposition='outside',
+                    width=0.45,
                 ))
                 fig_hist.update_layout(
-                    height=240, margin=dict(l=0, r=0, t=20, b=0),
+                    height=220, margin=dict(l=0, r=0, t=24, b=0),
                     plot_bgcolor='white', paper_bgcolor='white',
                     yaxis=dict(range=[0, y_max], showgrid=True,
                                gridcolor='#f0f0f0', tickfont=dict(size=11)),
                     xaxis=dict(showgrid=False, tickfont=dict(size=11)),
                     font=dict(family='Noto Sans KR, sans-serif', size=12),
-                )
-                # 추천된 크리에이터 범위 표시
-                top_ids = top_df['Creator_ID'].tolist()
-                top_min = brand_scores[brand_scores['Creator_ID'].isin(top_ids)]['matching_score'].min()
-                fig_hist.add_vrect(
-                    x0=top_min - 0.05, x1=1.0, fillcolor="#2d6a9f", opacity=0.07,
-                    layer="below", line_width=0,
-                    annotation_text="추천 범위", annotation_position="top left",
+                    bargap=0.3,
                 )
 
                 col_chart, col_info = st.columns([2, 1])
@@ -566,7 +565,7 @@ with tab_match:
                     xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
                     yaxis=dict(showgrid=False, autorange='reversed'),
                     font=dict(family='Noto Sans KR, sans-serif', size=12),
-                    bargap=0.4,
+                    bargap=0.5,
                 )
                 col_c1, col_c2 = st.columns([2, 1])
                 with col_c1:
@@ -715,7 +714,7 @@ with tab_explore:
                 xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
                 yaxis=dict(showgrid=False, autorange='reversed'),
                 font=dict(family='Noto Sans KR, sans-serif', size=11),
-                bargap=0.4,
+                bargap=0.5,
             )
             st.plotly_chart(fig_exp, use_container_width=True,
                             config={'displayModeBar': False})
@@ -763,12 +762,12 @@ with tab_dashboard:
         ind_stats = ind_stats.sort_values('성공률(%)')
 
         n_ind = len(ind_stats)
-        ind_opacities = [0.4 + 0.6 * i / max(n_ind - 1, 1) for i in range(n_ind)]
+        ind_opacities = [0.35 + 0.55 * i / max(n_ind - 1, 1) for i in range(n_ind)]
         fig_ind = go.Figure(go.Bar(
             y=ind_stats['업종'], x=ind_stats['성공률(%)'],
             orientation='h',
             marker=dict(
-                color=["rgba(26,122,74," + f"{op:.2f})" for op in ind_opacities]
+                color=["rgba(60,140,100," + f"{op:.2f})" for op in ind_opacities]
             ),
             text=[f"{v}%" for v in ind_stats['성공률(%)']],
             textposition='outside',
@@ -780,7 +779,7 @@ with tab_dashboard:
             xaxis=dict(range=[0, 100], showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
             font=dict(family='Noto Sans KR, sans-serif', size=12),
-            bargap=0.4,
+            bargap=0.5,
         )
         st.plotly_chart(fig_ind, use_container_width=True,
                         config={'displayModeBar': False})
@@ -795,12 +794,12 @@ with tab_dashboard:
         cat_ctr = cat_ctr.sort_values('평균CTR(%)')
 
         n_ctr = len(cat_ctr)
-        ctr_opacities = [0.45 + 0.55 * i / max(n_ctr - 1, 1) for i in range(n_ctr)]
+        ctr_opacities = [0.35 + 0.55 * i / max(n_ctr - 1, 1) for i in range(n_ctr)]
         fig_ctr = go.Figure(go.Bar(
             y=cat_ctr['카테고리'], x=cat_ctr['평균CTR(%)'],
             orientation='h',
             marker=dict(
-                color=["rgba(45,106,159," + f"{op:.2f})" for op in ctr_opacities]
+                color=["rgba(80,130,180," + f"{op:.2f})" for op in ctr_opacities]
             ),
             text=[f"{v}%" for v in cat_ctr['평균CTR(%)']],
             textposition='outside',
@@ -812,7 +811,7 @@ with tab_dashboard:
             xaxis=dict(showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
             font=dict(family='Noto Sans KR, sans-serif', size=12),
-            bargap=0.4,
+            bargap=0.5,
         )
         st.plotly_chart(fig_ctr, use_container_width=True,
                         config={'displayModeBar': False})
@@ -841,7 +840,7 @@ with tab_dashboard:
             xaxis=dict(showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
             font=dict(family='Noto Sans KR, sans-serif', size=12),
-            bargap=0.4,
+            bargap=0.5,
         )
         st.plotly_chart(fig_top, use_container_width=True,
                         config={'displayModeBar': False})
