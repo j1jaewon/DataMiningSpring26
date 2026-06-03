@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "ui-ux-demo/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/ui-ux-demo/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/ui-ux-demo/$1"
+    }
+  ]
+}
