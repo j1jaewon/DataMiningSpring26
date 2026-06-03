@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vouch — 리스크까지 측정하는 크리에이터 매칭</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAF7F0;
+  --paper-2:#F3EEE3;
+  --surface:#FFFFFF;
+  --ink:#181712;
+  --ink-soft:#3D3A30;
+  --muted:#807A6B;
+  --faint:#A8A293;
+  --line:#E7E1D3;
+  --line-strong:#D8D1BF;
+  --accent:#2433FF;
+  --accent-soft:#E9EAFF;
+  --accent-ink:#1421B8;
+  --safe:#15803D; --safe-bg:#E4F4E7; --safe-line:#BBE3C4;
+  --warn:#9A6207; --warn-bg:#FBF0D9; --warn-line:#EFD9A8;
+  --risk:#C42626; --risk-bg:#FBE6E4; --risk-line:#F1C2BD;
+  --serif:'Instrument Serif',serif;
+  --sans:'Pretendard','Pretendard Variable',-apple-system,sans-serif;
+  --r:12px; --r-lg:18px; --r-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  line-height:1.6;
+  font-size:15px;
+  letter-spacing:-0.01em;
+  min-height:100vh;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 520px at 78% -8%, rgba(36,51,255,0.06), transparent 60%);
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font-family:inherit}
+.serif{font-family:var(--serif);font-weight:400;letter-spacing:0}
+.mono-num{font-family:var(--serif);font-feature-settings:"tnum"}
+
+/* nav */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0;position:relative;z-index:2}
+.brand{display:flex;align-items:center;gap:9px;cursor:pointer}
+.brand .mark{width:26px;height:26px;border-radius:7px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:18px;line-height:1}
+.brand .name{font-family:var(--serif);font-size:24px;letter-spacing:0.2px}
+.nav-right{display:flex;align-items:center;gap:22px;font-size:13.5px;color:var(--muted)}
+.nav-right a{cursor:pointer}
+.nav-right a:hover{color:var(--ink)}
+.acct{display:flex;align-items:center;gap:8px;color:var(--ink)}
+.acct .av{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+
+/* views */
+.view{display:none;animation:fade .5s ease both}
+.view.active{display:block}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.r{animation:up .6s cubic-bezier(.2,.7,.2,1) both}
+
+/* ---------- brief ---------- */
+.hero{padding:46px 0 18px;max-width:760px}
+.kicker{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--accent-ink);background:var(--accent-soft);padding:5px 12px;border-radius:999px;font-weight:600;letter-spacing:0}
+.hero h1{font-family:var(--serif);font-size:60px;line-height:1.02;letter-spacing:-0.5px;margin:22px 0 0;font-weight:400}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero p{font-size:17px;color:var(--ink-soft);margin-top:18px;max-width:600px}
+
+.composer{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:8px;margin-top:30px;box-shadow:0 1px 0 rgba(24,23,18,.02),0 18px 40px -28px rgba(24,23,18,.25)}
+.composer textarea{width:100%;border:none;outline:none;resize:none;background:transparent;font-size:16.5px;line-height:1.7;color:var(--ink);padding:18px 18px 6px;min-height:138px}
+.composer textarea::placeholder{color:var(--faint)}
+.composer .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px 12px;flex-wrap:wrap}
+.tool-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.seg{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);background:var(--paper-2);border:1px solid transparent;border-radius:999px;padding:7px 13px}
+.seg select{border:none;background:transparent;font-size:13px;color:var(--ink);outline:none;cursor:pointer;margin-left:-2px}
+.cta{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;font-size:14.5px;font-weight:600;padding:12px 22px;border-radius:999px;transition:transform .15s,background .15s;white-space:nowrap}
+.cta:hover{background:var(--accent-ink);transform:translateY(-1px)}
+.cta svg{width:16px;height:16px}
+
+.examples{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
+.ex{font-size:13px;color:var(--ink-soft);background:transparent;border:1px solid var(--line-strong);border-radius:999px;padding:8px 14px;transition:.15s}
+.ex:hover{border-color:var(--ink);background:var(--surface)}
+
+.prio{margin-top:40px}
+.prio .lab{font-size:13px;color:var(--muted);margin-bottom:13px;display:flex;align-items:center;gap:8px}
+.prio .lab b{color:var(--ink);font-weight:600}
+.prio-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.pcard{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:15px 15px 16px;cursor:pointer;transition:.15s;position:relative}
+.pcard:hover{border-color:var(--line-strong)}
+.pcard.on{border-color:var(--accent);background:var(--accent-soft)}
+.pcard .ic{font-size:20px}
+.pcard h4{font-size:14px;font-weight:600;margin-top:10px}
+.pcard p{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.pcard .chk{position:absolute;top:13px;right:13px;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line-strong);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px}
+.pcard.on .chk{background:var(--accent);border-color:var(--accent)}
+
+/* ---------- matching ---------- */
+.matching{min-height:62vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 0}
+.orb{width:64px;height:64px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.matching h2{font-family:var(--serif);font-size:34px;margin-top:28px;font-weight:400}
+.steps{margin-top:30px;display:flex;flex-direction:column;gap:14px;text-align:left;min-width:300px}
+.step{display:flex;align-items:center;gap:12px;font-size:14.5px;color:var(--faint);transition:.3s}
+.step .dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.step.done{color:var(--ink)}
+.step.done .dot{background:var(--safe);border-color:var(--safe);color:#fff}
+.step.active{color:var(--ink)}
+.step.active .dot{border-color:var(--accent);border-top-color:transparent;animation:spin .8s linear infinite}
+
+/* ---------- results ---------- */
+.res-head{padding:34px 0 4px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.res-head h2{font-family:var(--serif);font-size:38px;font-weight:400;line-height:1.1}
+.res-head h2 b{font-style:italic;color:var(--accent);font-weight:400}
+.brief-recap{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.tag{font-size:12.5px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 13px;display:inline-flex;align-items:center;gap:6px}
+.tag b{font-weight:600;color:var(--ink)}
+.edit-brief{font-size:13px;color:var(--accent);align-self:flex-end;white-space:nowrap}
+.edit-brief:hover{text-decoration:underline}
+
+.toolbar2{display:flex;align-items:center;gap:10px;margin:26px 0 14px;flex-wrap:wrap}
+.toolbar2 .ttl{font-size:13px;color:var(--muted)}
+.chip{font-size:13px;color:var(--ink-soft);border:1px solid var(--line-strong);border-radius:999px;padding:7px 14px;transition:.15s;background:transparent}
+.chip:hover{border-color:var(--ink)}
+.chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.spacer{flex:1}
+
+.list{display:flex;flex-direction:column;gap:14px;padding-bottom:60px}
+.ccard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 24px;cursor:pointer;transition:.18s;display:grid;grid-template-columns:1fr 168px;gap:20px}
+.ccard:hover{border-color:var(--line-strong);transform:translateY(-2px);box-shadow:0 20px 44px -34px rgba(24,23,18,.4)}
+.cc-rank{font-family:var(--serif);font-size:20px;color:var(--faint);margin-right:2px}
+.cc-top{display:flex;align-items:center;gap:13px}
+.av-lg{width:46px;height:46px;border-radius:50%;background:var(--paper-2);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;color:var(--ink-soft);flex-shrink:0}
+.cc-name{font-size:17px;font-weight:600;display:flex;align-items:center;gap:9px}
+.cc-meta{font-size:13px;color:var(--muted);margin-top:1px}
+.match-why{font-size:13.5px;color:var(--ink-soft);margin-top:14px;line-height:1.55;display:flex;gap:8px}
+.match-why svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;margin-top:3px}
+.axes-mini{display:grid;grid-template-columns:1fr 1fr;gap:9px 16px;margin-top:16px}
+.am{display:flex;flex-direction:column;gap:5px}
+.am .row{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)}
+.am .row b{font-weight:600;color:var(--ink)}
+.track{height:4px;border-radius:999px;background:var(--paper-2);overflow:hidden}
+.track i{display:block;height:100%;border-radius:999px}
+
+.scorebox{border-left:1px solid var(--line);padding-left:20px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+.scorebox .big{font-family:var(--serif);font-size:58px;line-height:.9;font-weight:400}
+.scorebox .of{font-size:12px;color:var(--faint);margin-top:4px}
+.tier{font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;margin-top:12px;display:inline-flex;align-items:center;gap:6px}
+.go{font-size:13px;color:var(--accent);margin-top:14px;display:flex;align-items:center;gap:5px}
+.go svg{width:14px;height:14px}
+.flagline{margin-top:14px;font-size:12.5px;color:var(--risk);background:var(--risk-bg);border:1px solid var(--risk-line);border-radius:var(--r-sm);padding:8px 12px;display:flex;align-items:center;gap:7px;grid-column:1/-1}
+.flagline svg{width:15px;height:15px;flex-shrink:0}
+
+/* ---------- detail ---------- */
+.back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin:30px 0 18px;cursor:pointer}
+.back:hover{color:var(--ink)}
+.back svg{width:15px;height:15px}
+.d-head{display:flex;align-items:flex-start;gap:18px;padding-bottom:26px;border-bottom:1px solid var(--line)}
+.av-xl{width:62px;height:62px;border-radius:50%;background:var(--paper-2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:var(--ink-soft);flex-shrink:0}
+.d-head h2{font-family:var(--serif);font-size:34px;font-weight:400;line-height:1.05}
+.d-meta{font-size:13.5px;color:var(--muted);margin-top:5px}
+.d-badges{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+.bdg{font-size:11.5px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft)}
+.bdg.ok{background:var(--safe-bg);border-color:var(--safe-line);color:var(--safe)}
+.d-score{margin-left:auto;text-align:center;background:var(--ink);color:var(--paper);border-radius:var(--r);padding:14px 22px;flex-shrink:0}
+.d-score .big{font-family:var(--serif);font-size:48px;line-height:.9}
+.d-score .lab{font-size:11px;opacity:.7;margin-top:4px}
+
+.axis{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 24px;margin-top:16px}
+.axis-h{display:flex;align-items:center;gap:11px}
+.axis-h .ic{width:34px;height:34px;border-radius:9px;background:var(--paper-2);display:flex;align-items:center;justify-content:center;font-size:18px}
+.axis-h h3{font-size:16px;font-weight:600}
+.axis-tier{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;margin-left:auto}
+.axis-score{font-family:var(--serif);font-size:30px;margin-left:6px}
+.axis-desc{font-size:14px;color:var(--ink-soft);line-height:1.65;margin-top:12px}
+.ev{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.ev-c{flex:1;min-width:120px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.ev-c .k{font-size:11.5px;color:var(--muted)}
+.ev-c .v{font-size:18px;font-weight:600;margin-top:3px}
+.cadence{display:flex;align-items:flex-end;gap:4px;height:40px;margin-top:16px}
+.cadence i{flex:1;border-radius:3px;background:var(--safe)}
+.demo{margin-top:16px}
+.demo .d{margin-bottom:11px}
+.demo .d .r{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px}
+.demo .d .r b{font-weight:600}
+.note{font-size:12.5px;color:var(--muted);margin-top:10px}
+
+.d-actions{display:flex;gap:10px;margin:24px 0 70px;flex-wrap:wrap}
+.btn-solid{background:var(--accent);color:#fff;font-size:14.5px;font-weight:600;padding:13px 24px;border-radius:999px;transition:.15s}
+.btn-solid:hover{background:var(--accent-ink)}
+.btn-ghost{border:1px solid var(--line-strong);font-size:14.5px;font-weight:500;padding:13px 24px;border-radius:999px;color:var(--ink);transition:.15s;background:var(--surface)}
+.btn-ghost:hover{border-color:var(--ink)}
+
+footer{border-top:1px solid var(--line);padding:26px 0;font-size:12.5px;color:var(--faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+@media(max-width:760px){
+  .hero h1{font-size:42px}
+  .prio-grid{grid-template-columns:1fr 1fr}
+  .ccard{grid-template-columns:1fr}
+  .scorebox{border-left:none;border-top:1px solid var(--line);padding-left:0;padding-top:16px;flex-direction:row;align-items:center;gap:16px}
+  .scorebox .of,.tier,.go{margin-top:0}
+  .d-score{margin-left:0}
+  .d-head{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <div class="brand" onclick="go('brief')">
+      <span class="mark">V</span><span class="name">Vouch</span>
+    </div>
+    <div class="nav-right">
+      <a>탐색</a><a>워치리스트</a><a>리포트</a>
+      <span class="acct"><span class="av">AC</span>Acme Beauty</span>
+    </div>
+  </nav>
+
+  <!-- ============ VIEW 1: BRIEF ============ -->
+  <section id="v-brief" class="view active">
+    <div class="hero">
+      <span class="kicker r" style="animation-delay:.02s">● 리스크까지 측정하는 크리에이터 매칭</span>
+      <h1 class="r" style="animation-delay:.06s">어떤 크리에이터를<br>찾고 계신가요<em>?</em></h1>
+      <p class="r" style="animation-delay:.12s">브랜드와 캠페인을 자유롭게 설명해 주세요. Vouch가 성과 지표뿐 아니라
+      <b>성실함 · 커뮤니케이션 · 약속 이행 · 팔로워 진정성</b>까지 검증해 가장 신뢰할 수 있는 크리에이터를 추천합니다.</p>
+    </div>
+
+    <div class="composer r" style="animation-delay:.18s">
+      <textarea id="brief" placeholder="예) 저희는 2030 여성을 타깃으로 하는 비건 스킨케어 브랜드 Acme Beauty입니다. 신제품 세럼 런칭을 위해 진정성 있고 꾸준히 활동하는 뷰티 크리에이터를 찾고 있어요. 마감 약속을 잘 지키는 분이 특히 중요하고, 팔로워가 실제 구매로 이어질 수 있는 분이면 좋겠습니다."></textarea>
+      <div class="toolbar">
+        <div class="tool-left">
+          <span class="seg">카테고리<select><option>뷰티 / 스킨케어</option><option>푸드</option><option>패션</option><option>테크</option><option>라이프스타일</option></select></span>
+          <span class="seg">플랫폼<select><option>전체</option><option>YouTube</option><option>Instagram</option><option>TikTok</option></select></span>
+          <span class="seg">예산<select><option>~ 500만원</option><option>500만 ~ 1,500만원</option><option>1,500만원 +</option></select></span>
+        </div>
+        <button class="cta" onclick="startMatch()">크리에이터 추천받기
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="examples r" style="animation-delay:.24s">
+      <button class="ex" onclick="fillEx(0)">비건 스킨케어 런칭 캠페인</button>
+      <button class="ex" onclick="fillEx(1)">꾸준히 활동하는 데일리 브이로거</button>
+      <button class="ex" onclick="fillEx(2)">약속 잘 지키는 장기 앰배서더</button>
+    </div>
+
+    <div class="prio r" style="animation-delay:.3s">
+      <div class="lab"><b>리스크 우선순위</b> — 가장 중요한 신뢰 축을 선택하면 그 기준으로 추천 순서가 조정됩니다</div>
+      <div class="prio-grid">
+        <div class="pcard" data-axis="diligence" onclick="togglePrio(this)"><div class="chk">✓</div><div class="ic">📅</div><h4>성실함</h4><p>업로드 주기 · 활동 꾸준함</p></div>
+        <div class="pcard" data-axis="comm" onclick="togglePrio(this)"><div class="chk">✓</div><div class="ic">💬</div><h4>커뮤니케이션</h4><p>응답 속도 · 협업 명료성</p></div>
+        <div class="pcard on" data-axis="delivery" onclick="togglePrio(this)"><div class="chk">✓</div><div class="ic">🤝</div><h4>약속 이행</h4><p>마감 준수 · 계약 이행</p></div>
+        <div class="pcard" data-axis="audience" onclick="togglePrio(this)"><div class="chk">✓</div><div class="ic">👥</div><h4>팔로워 진정성</h4><p>실사용자 비중 · 시청자층</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW 2: MATCHING ============ -->
+  <section id="v-match" class="view">
+    <div class="matching">
+      <div class="orb"></div>
+      <h2>신뢰할 수 있는 후보를 추리는 중</h2>
+      <div class="steps" id="steps">
+        <div class="step" data-i="0"><span class="dot">1</span>브리프 의도 분석</div>
+        <div class="step" data-i="1"><span class="dot">2</span>카테고리 내 크리에이터 스크리닝</div>
+        <div class="step" data-i="2"><span class="dot">3</span>리스크 4개 축 검증</div>
+        <div class="step" data-i="3"><span class="dot">4</span>브리프 적합도 매칭</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW 3: RESULTS ============ -->
+  <section id="v-results" class="view">
+    <div class="res-head">
+      <div>
+        <h2 class="r">리스크 검증을 통과한 <b>크리에이터 6명</b></h2>
+        <div class="brief-recap r" style="animation-delay:.06s" id="recap"></div>
+      </div>
+      <span class="edit-brief" onclick="go('brief')">← 브리프 수정</span>
+    </div>
+
+    <div class="toolbar2">
+      <span class="ttl">정렬</span>
+      <button class="chip on" data-sort="overall" onclick="setSort(this)">종합 신뢰</button>
+      <button class="chip" data-sort="diligence" onclick="setSort(this)">성실함</button>
+      <button class="chip" data-sort="comm" onclick="setSort(this)">커뮤니케이션</button>
+      <button class="chip" data-sort="delivery" onclick="setSort(this)">약속 이행</button>
+      <button class="chip" data-sort="audience" onclick="setSort(this)">팔로워 진정성</button>
+      <span class="spacer"></span>
+      <button class="chip" id="hideRisk" onclick="toggleHideRisk(this)">위험 등급 숨기기</button>
+    </div>
+
+    <div class="list" id="list"></div>
+  </section>
+
+  <!-- ============ VIEW 4: DETAIL ============ -->
+  <section id="v-detail" class="view">
+    <div class="back" onclick="go('results')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>추천 리스트</div>
+    <div id="detail"></div>
+  </section>
+
+  <footer>
+    <span>Vouch — 데모용 목업 · 모든 데이터는 가상입니다</span>
+    <span>© 2026 Vouch Labs</span>
+  </footer>
+</div>
+
+<script>
+const EXAMPLES = [
+  "저희는 2030 여성을 타깃으로 하는 비건 스킨케어 브랜드 Acme Beauty입니다. 신제품 세럼 런칭을 위해 진정성 있고 꾸준히 활동하는 뷰티 크리에이터를 찾고 있어요. 마감 약속을 잘 지키는 분이 특히 중요하고, 팔로워가 실제 구매로 이어질 수 있는 분이면 좋겠습니다.",
+  "매주 일상을 꾸준히 기록하는 데일리 브이로거를 찾습니다. 업로드가 끊기지 않고 시청자와 관계가 끈끈한 분이면 좋겠어요. 6개월간 정기 협업을 염두에 두고 있습니다.",
+  "장기 브랜드 앰배서더 1명을 찾습니다. 화려한 화제성보다, 일정을 어기지 않고 커뮤니케이션이 매끄러운 신뢰도 높은 분이 최우선입니다."
+];
+
+const AXIS_META = {
+  diligence:{name:"성실함", ic:"📅"},
+  comm:{name:"커뮤니케이션", ic:"💬"},
+  delivery:{name:"약속 이행", ic:"🤝"},
+  audience:{name:"팔로워 진정성", ic:"👥"}
+};
+
+const CREATORS = [
+  {id:"haneul", init:"하", name:"하늘 비건뷰티", handle:"@haneul.vegan", cat:"뷰티 · 비건 스킨케어", plat:"YouTube", followers:"328K", years:"4년 2개월", deals:9,
+   overall:87, scores:{diligence:95, comm:82, delivery:93, audience:78},
+   why:"비건 스킨케어 전문 + 마감 준수율 96%로 브리프의 '약속 이행' 우선순위에 정확히 부합합니다.",
+   ev:{
+     diligence:{desc:"업로드가 일정하고 최근까지 꾸준합니다. 최근 16주 주 2.1회 평균, 12주 연속 활동.", cards:[["평균 주기","주 2.1회"],["최대 공백","6일"],["일관성","상위 8%"]], cadence:[2,1,2,3,2,2,1,2,2,3,2,2,1,2,2,2]},
+     comm:{desc:"응답이 빠르고 협업 명료성이 높습니다. 과거 1건의 회신 지연 기록.", cards:[["첫 응답","6시간"],["명료성","4.3 / 5"],["지연 사례","1건"]]},
+     delivery:{desc:"마감과 계약 조건 이행이 매우 안정적입니다. 검증 협업 전부 완료, 분쟁 없음.", cards:[["마감 준수율","96%"],["조건 이행","9 / 9건"],["중도 이탈","0건"]]},
+     audience:{desc:"실사용자 비중 양호. 핵심 시청자가 브랜드 타깃과 일치합니다.", cards:[["실 팔로워","84%"],["봇 의심","16%"],["타깃 적합","높음"]], demo:[["여성 25-34세",46],["여성 18-24세",29],["남성 25-34세",12]], note:"국내 87% · 모바일 90%"}
+   }},
+
+  {id:"sujin", init:"수", name:"미니멀 수진", handle:"@sujin.skin", cat:"뷰티 · 스킨케어", plat:"Instagram", followers:"212K", years:"3년 5개월", deals:7,
+   overall:82, scores:{diligence:80, comm:88, delivery:86, audience:74},
+   why:"커뮤니케이션 평점이 가장 높아 일정 조율이 매끄럽고, 스킨케어 전문성이 브리프와 맞습니다.",
+   ev:{
+     diligence:{desc:"꾸준하나 시즌별 활동량 편차가 있습니다.", cards:[["평균 주기","주 1.6회"],["최대 공백","11일"],["일관성","상위 24%"]], cadence:[2,1,1,2,2,0,1,2,2,1,2,1,2,1,1,2]},
+     comm:{desc:"응답이 매우 빠르고 피드백이 구체적입니다. 협업사 만족도 최상위.", cards:[["첫 응답","2시간"],["명료성","4.7 / 5"],["지연 사례","0건"]]},
+     delivery:{desc:"마감 준수가 안정적이며 수정 요청 대응이 빠릅니다.", cards:[["마감 준수율","91%"],["조건 이행","7 / 7건"],["중도 이탈","0건"]]},
+     audience:{desc:"실사용자 비중 양호하나 해외 팔로워 비중이 다소 높습니다.", cards:[["실 팔로워","79%"],["봇 의심","21%"],["타깃 적합","보통"]], demo:[["여성 25-34세",41],["여성 35-44세",24],["여성 18-24세",18]], note:"국내 72% · 모바일 95%"}
+   }},
+
+  {id:"bokyung", init:"보", name:"데일리 보경", handle:"@bokyung.daily", cat:"라이프스타일 · 뷰티", plat:"YouTube", followers:"156K", years:"5년", deals:11,
+   overall:79, scores:{diligence:91, comm:74, delivery:81, audience:70},
+   why:"5년간 가장 꾸준한 업로드 기록. 데일리 콘텐츠 내 자연스러운 제품 노출에 강합니다.",
+   ev:{
+     diligence:{desc:"5년 내내 거의 끊김 없는 업로드. 성실함 지표 최상위권.", cards:[["평균 주기","주 2.4회"],["최대 공백","4일"],["일관성","상위 3%"]], cadence:[2,2,3,2,2,2,3,2,2,2,2,3,2,2,2,2]},
+     comm:{desc:"응답은 성실하나 다소 느린 편. 메시지 명료성은 평균.", cards:[["첫 응답","14시간"],["명료성","3.9 / 5"],["지연 사례","2건"]]},
+     delivery:{desc:"이행률은 좋으나 과거 일정 1건 재조율 이력.", cards:[["마감 준수율","88%"],["조건 이행","11 / 11건"],["중도 이탈","0건"]]},
+     audience:{desc:"충성도 높은 국내 시청자층. 규모는 작지만 참여율이 높습니다.", cards:[["실 팔로워","86%"],["봇 의심","14%"],["참여율","상위 12%"]], demo:[["여성 30-44세",44],["여성 25-34세",31],["남성 30-44세",13]], note:"국내 93% · 평균 시청 6.2분"}
+   }},
+
+  {id:"raon", init:"라", name:"클린뷰티 라온", handle:"@raon.clean", cat:"뷰티 · 클린뷰티", plat:"Instagram", followers:"289K", years:"2년 8개월", deals:5,
+   overall:74, scores:{diligence:72, comm:79, delivery:68, audience:77},
+   why:"클린뷰티 포지셔닝이 정확히 일치하나, 약속 이행 점수가 평균을 약간 밑돕니다.",
+   warn:"약속 이행 주의 — 과거 협업 중 1건 마감 지연 기록",
+   ev:{
+     diligence:{desc:"활동은 있으나 업로드 간격 편차가 있습니다.", cards:[["평균 주기","주 1.3회"],["최대 공백","16일"],["일관성","상위 38%"]], cadence:[1,2,0,2,1,1,2,0,2,1,1,2,0,1,2,1]},
+     comm:{desc:"응답 속도와 톤은 양호한 편입니다.", cards:[["첫 응답","8시간"],["명료성","4.0 / 5"],["지연 사례","1건"]]},
+     delivery:{desc:"대체로 이행하나 과거 협업 5건 중 1건에서 마감 지연이 있었습니다.", cards:[["마감 준수율","78%"],["조건 이행","5 / 5건"],["중도 이탈","0건"]]},
+     audience:{desc:"실사용자 비중이 높고 클린뷰티 관심사 집중도가 좋습니다.", cards:[["실 팔로워","83%"],["봇 의심","17%"],["타깃 적합","높음"]], demo:[["여성 25-34세",48],["여성 18-24세",26],["여성 35-44세",14]], note:"국내 81% · 모바일 92%"}
+   }},
+
+  {id:"jia", init:"지", name:"글로우 지아", handle:"@jia.glow", cat:"뷰티 · 메이크업", plat:"TikTok", followers:"540K", years:"1년 11개월", deals:4,
+   overall:61, scores:{diligence:66, comm:52, delivery:60, audience:66},
+   why:"도달은 크지만 커뮤니케이션 응답이 느려 일정 관리 리스크가 있습니다.",
+   warn:"커뮤니케이션 주의 — 평균 첫 응답 2일, 협업 중 회신 지연 2건",
+   ev:{
+     diligence:{desc:"바이럴 위주로 업로드가 불규칙합니다.", cards:[["평균 주기","주 1.0회"],["최대 공백","22일"],["일관성","상위 52%"]], cadence:[3,0,0,2,0,1,3,0,0,2,0,1,0,2,0,1]},
+     comm:{desc:"응답이 느리고 협업 중 회신이 끊긴 사례가 있습니다.", cards:[["첫 응답","2일"],["명료성","3.2 / 5"],["지연 사례","2건"]]},
+     delivery:{desc:"완료는 했으나 일정 변경 요청이 잦았습니다.", cards:[["마감 준수율","70%"],["조건 이행","4 / 4건"],["일정 변경","3건"]]},
+     audience:{desc:"젊은 층 도달이 크나 구매 전환 데이터는 부족합니다.", cards:[["실 팔로워","74%"],["봇 의심","26%"],["타깃 적합","보통"]], demo:[["여성 18-24세",52],["여성 13-17세",21],["남성 18-24세",15]], note:"국내 68% · 평균 시청 0:21"}
+   }},
+
+  {id:"hyun", init:"H", name:"코스메 hyun", handle:"@cosme_hyun", cat:"뷰티 · 메이크업", plat:"Instagram", followers:"1.2M", years:"3년 1개월", deals:2,
+   overall:44, scores:{diligence:41, comm:58, delivery:50, audience:32},
+   why:"팔로워 규모는 압도적이나, 봇 의심 비율과 불규칙한 활동으로 리스크가 높습니다.",
+   warn:"팔로워 진정성 위험 — 봇 의심 41% · 업로드 불규칙 · 검증 거래 부족",
+   risk:true,
+   ev:{
+     diligence:{desc:"장기 공백이 반복되어 활동 예측이 어렵습니다.", cards:[["평균 주기","주 0.6회"],["최대 공백","34일"],["일관성","하위 28%"]], cadence:[0,2,0,0,3,0,0,0,2,0,0,1,0,0,0,2]},
+     comm:{desc:"응답은 보통이나 검증된 협업 표본이 적습니다.", cards:[["첫 응답","18시간"],["명료성","3.5 / 5"],["표본","2건"]]},
+     delivery:{desc:"검증 거래가 2건뿐이라 이행 신뢰도 판단이 제한적입니다.", cards:[["마감 준수율","50%"],["조건 이행","2 / 2건"],["표본","부족"]]},
+     audience:{desc:"팔로워의 41%가 봇·휴면으로 추정되어 실제 도달이 과대평가될 위험이 큽니다.", cards:[["실 팔로워","59%"],["봇 의심","41%"],["타깃 적합","낮음"]], demo:[["여성 18-24세",38],["불명 / 비활성",34],["여성 25-34세",16]], note:"해외·비활성 비중 높음"}
+   }}
+];
+
+let state = { sort:"overall", prios:["delivery"], hideRisk:false };
+
+function tier(v){
+  if(v>=80) return {cls:"safe", lab:"안정", c:"var(--safe)", bg:"var(--safe-bg)", line:"var(--safe-line)"};
+  if(v>=60) return {cls:"warn", lab:"주의", c:"var(--warn)", bg:"var(--warn-bg)", line:"var(--warn-line)"};
+  return {cls:"risk", lab:"위험", c:"var(--risk)", bg:"var(--risk-bg)", line:"var(--risk-line)"};
+}
+
+function go(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('v-'+view).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function fillEx(i){ document.getElementById('brief').value = EXAMPLES[i]; }
+
+function togglePrio(el){
+  el.classList.toggle('on');
+  const ax = el.dataset.axis;
+  if(el.classList.contains('on')) state.prios.push(ax);
+  else state.prios = state.prios.filter(a=>a!==ax);
+}
+
+function startMatch(){
+  go('match');
+  const steps = [...document.querySelectorAll('.step')];
+  steps.forEach(s=>s.className='step');
+  let i=0;
+  steps[0].classList.add('active');
+  const t = setInterval(()=>{
+    steps[i].classList.remove('active'); steps[i].classList.add('done');
+    i++;
+    if(i<steps.length){ steps[i].classList.add('active'); }
+    else { clearInterval(t); setTimeout(showResults, 480); }
+  }, 620);
+}
+
+function buildRecap(){
+  const briefText = document.getElementById('brief').value.trim();
+  const tags = [];
+  tags.push(['카테고리','뷰티 · 스킨케어']);
+  tags.push(['타깃','2030 여성']);
+  state.prios.forEach(p=> tags.push(['우선', AXIS_META[p].name]));
+  document.getElementById('recap').innerHTML = tags.map(t=>
+    `<span class="tag">${t[0]} <b>${t[1]}</b></span>`).join('');
+}
+
+function sortedCreators(){
+  let arr = CREATORS.slice();
+  if(state.hideRisk) arr = arr.filter(c=>!c.risk && c.overall>=60);
+  const key = state.sort;
+  arr.sort((a,b)=>{
+    const av = key==='overall'? a.overall : a.scores[key];
+    const bv = key==='overall'? b.overall : b.scores[key];
+    return bv-av;
+  });
+  return arr;
+}
+
+function miniAxis(label, val){
+  const t = tier(val);
+  return `<div class="am">
+    <div class="row"><span>${label}</span><b>${Math.round(val)}</b></div>
+    <div class="track"><i style="width:${Math.round(val)}%;background:${t.c}"></i></div>
+  </div>`;
+}
+
+function renderList(){
+  const arr = sortedCreators();
+  const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+  const spark = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2"/></svg>`;
+  document.getElementById('list').innerHTML = arr.map((c,idx)=>{
+    const t = tier(c.overall);
+    const flag = c.warn ? `<div class="flagline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>${c.warn}</div>` : '';
+    return `<div class="ccard r" style="animation-delay:${idx*0.05}s" onclick="openDetail('${c.id}')">
+      <div>
+        <div class="cc-top">
+          <span class="cc-rank">${idx+1}</span>
+          <span class="av-lg">${c.init}</span>
+          <div>
+            <div class="cc-name">${c.name}</div>
+            <div class="cc-meta">${c.cat} · ${c.plat} · ${c.followers} · ${c.handle}</div>
+          </div>
+        </div>
+        <div class="match-why">${spark}<span>${c.why}</span></div>
+        <div class="axes-mini">
+          ${miniAxis('성실함', c.scores.diligence)}
+          ${miniAxis('커뮤니케이션', c.scores.comm)}
+          ${miniAxis('약속 이행', c.scores.delivery)}
+          ${miniAxis('팔로워 진정성', c.scores.audience)}
+        </div>
+      </div>
+      <div class="scorebox">
+        <div class="big" style="color:${t.c}">${c.overall}</div>
+        <div class="of">/ 100 종합 신뢰</div>
+        <span class="tier" style="color:${t.c};background:${t.bg}">${t.lab}</span>
+        <span class="go">상세 리포트 ${arrow}</span>
+      </div>
+      ${flag}
+    </div>`;
+  }).join('');
+}
+
+function showResults(){ buildRecap(); renderList(); go('results'); }
+
+function setSort(btn){
+  document.querySelectorAll('[data-sort]').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  state.sort = btn.dataset.sort;
+  renderList();
+}
+function toggleHideRisk(btn){
+  state.hideRisk = !state.hideRisk;
+  btn.classList.toggle('on', state.hideRisk);
+  renderList();
+}
+
+function openDetail(id){
+  const c = CREATORS.find(x=>x.id===id);
+  const t = tier(c.overall);
+  const order = ['diligence','comm','delivery','audience'];
+  const axesHtml = order.map(key=>{
+    const sc = c.scores[key]; const at = tier(sc); const e = c.ev[key]; const m = AXIS_META[key];
+    let extra = '';
+    if(e.cadence){
+      const max = Math.max(...e.cadence);
+      extra += `<div class="note" style="margin-top:18px;margin-bottom:0">최근 16주 업로드</div><div class="cadence">${
+        e.cadence.map(w=>`<i style="height:${8+ (max? w/max:0)*32}px;background:${at.c};opacity:${w===0?0.25:1}"></i>`).join('')
+      }</div>`;
+    }
+    if(e.demo){
+      extra += `<div class="demo"><div class="note" style="margin-top:18px">핵심 시청자층</div>${
+        e.demo.map(d=>{const dt=tier(d[1]*1.6); return `<div class="d"><div class="r"><span>${d[0]}</span><b>${d[1]}%</b></div><div class="track"><i style="width:${d[1]}%;background:${at.c}"></i></div></div>`;}).join('')
+      }<div class="note">${e.note}</div></div>`;
+    }
+    return `<div class="axis r" style="animation-delay:${order.indexOf(key)*0.06}s">
+      <div class="axis-h">
+        <span class="ic">${m.ic}</span>
+        <h3>${m.name}</h3>
+        <span class="axis-tier" style="color:${at.c};background:${at.bg}">${at.lab}</span>
+        <span class="axis-score" style="color:${at.c}">${sc}</span>
+      </div>
+      <div class="axis-desc">${e.desc}</div>
+      <div class="ev">${e.cards.map(cd=>`<div class="ev-c"><div class="k">${cd[0]}</div><div class="v">${cd[1]}</div></div>`).join('')}</div>
+      ${extra}
+    </div>`;
+  }).join('');
+
+  document.getElementById('detail').innerHTML = `
+    <div class="d-head">
+      <span class="av-xl">${c.init}</span>
+      <div>
+        <h2>${c.name}</h2>
+        <div class="d-meta">${c.cat} · ${c.plat} · 팔로워 ${c.followers} · 활동 ${c.years}</div>
+        <div class="d-badges">
+          <span class="bdg ok">검증된 거래 ${c.deals}건</span>
+          <span class="bdg">${c.handle}</span>
+          ${c.risk?'<span class="bdg" style="background:var(--risk-bg);border-color:var(--risk-line);color:var(--risk)">리스크 높음</span>':'<span class="bdg">분쟁 이력 0</span>'}
+        </div>
+      </div>
+      <div class="d-score" style="${c.overall<60?'background:var(--risk);':''}">
+        <div class="big">${c.overall}</div>
+        <div class="lab">종합 신뢰</div>
+      </div>
+    </div>
+    ${c.warn?`<div class="flagline" style="margin-top:18px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>${c.warn}</div>`:''}
+    ${axesHtml}
+    <div class="d-actions">
+      <button class="btn-solid">협업 제안하기</button>
+      <button class="btn-ghost">워치리스트에 추가</button>
+      <button class="btn-ghost" onclick="go('results')">다른 후보 비교</button>
+    </div>`;
+  go('detail');
+}
+</script>
+</body>
+</html>
