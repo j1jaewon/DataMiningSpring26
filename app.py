@@ -8,7 +8,10 @@ warnings.filterwarnings('ignore')
 import plotly.graph_objects as go
 import plotly.express as px
 
-from recommendation_logic import build_similarity, recommend, grade_label
+from recommendation_logic import (
+    build_similarity, recommend, grade_label,
+    calc_category_score, calc_context_score,
+)
 from db_setup import (
     setup_db, get_conn, save_similarity, save_campaign,
     SQL_BRANDS, SQL_CREATORS, SQL_CAMPAIGNS, SQL_RATINGS, SQL_SIMILARITY,
@@ -153,6 +156,102 @@ max_followers = creators['Followers'].max()
 name_map_c  = dict(zip(creators['Creator_ID'], creators['Channel_Name']))
 brand_name_map = dict(zip(brands['Brand_ID'], brands['Brand_Name']))
 
+# ── 텍스트 파싱 & 텍스트 기반 추천 ──────────────────────────────────────────
+import re as _re
+
+def parse_brand_text(text):
+    t = text.lower()
+
+    industry = '뷰티'
+    industry_map = {
+        '뷰티':    ['뷰티', '스킨케어', '화장', '코스메틱', '메이크업', '향수'],
+        '패션':    ['패션', '의류', '옷', '스타일', '코디'],
+        '식품':    ['식품', '음식', '요리', '먹', '푸드', '식음료', '베이커리', '카페'],
+        '테크':    ['테크', '기술', '전자', 'it', '소프트웨어', '앱', '스타트업'],
+        '게임':    ['게임', '게이밍', 'e스포츠'],
+        '생활용품':['생활', '가전', '인테리어', '청소', '주방'],
+        '피트니스':['피트니스', '운동', '헬스', '다이어트', '스포츠', '요가'],
+        '교육':    ['교육', '학습', '강의', '튜터', '어학'],
+        '여행':    ['여행', '투어', '관광', '호텔'],
+        '헬스케어':['헬스케어', '건강', '의료', '영양', '보건', '비건'],
+    }
+    for ind, kws in industry_map.items():
+        if any(kw in text for kw in kws):
+            industry = ind
+            break
+
+    target_age = '18-34'
+    if any(k in text for k in ['10대', '청소년', '틴']):
+        target_age = '13-17'
+    elif any(k in text for k in ['5060', '50대', '60대', '중장년', '시니어']):
+        target_age = '35-54'
+    elif any(k in text for k in ['3040', '40대', '4050']):
+        target_age = '25-44'
+    elif any(k in text for k in ['2030', '20대', '30대', '젊']):
+        target_age = '18-34'
+
+    target_gender = 'Mixed'
+    if any(k in text for k in ['여성', '여자', '여성분']):
+        target_gender = 'Female'
+    elif any(k in text for k in ['남성', '남자', '남성분']):
+        target_gender = 'Male'
+
+    platform = 'Mixed'
+    if any(k in text for k in ['유튜브', 'youtube']):
+        platform = 'YouTube'
+    elif any(k in text for k in ['인스타', 'instagram']):
+        platform = 'Instagram'
+    elif any(k in text for k in ['틱톡', 'tiktok']):
+        platform = 'TikTok'
+
+    max_cpm = 5000.0
+    m = _re.search(r'(\d[\d,]*)\s*만\s*원', text)
+    if m:
+        budget_won = int(m.group(1).replace(',', '')) * 10_000
+        max_cpm = budget_won / 300.0
+
+    return {
+        'Industry':          industry,
+        'Target_Age':        target_age,
+        'Target_Gender':     target_gender,
+        'Preferred_Platform': platform,
+        'Max_CPM':           max_cpm,
+        'Monthly_Budget':    int(max_cpm * 300),
+        'Brand_Name':        '입력된 브랜드',
+    }
+
+
+def recommend_from_text(brand_attrs, creators_df, risk_threshold=2.5, top_n=3):
+    rows = []
+    for _, c in creators_df.iterrows():
+        if c['Risk_Score'] < risk_threshold:
+            continue
+        cat_score = calc_category_score(brand_attrs['Industry'], c['Category'])
+        if cat_score == 0:
+            continue
+        ctx_score = calc_context_score(brand_attrs, c)
+        matching  = round(cat_score * 0.5 + ctx_score * 0.5, 4)
+        rows.append({
+            'Creator_ID':           c['Creator_ID'],
+            'Channel_Name':         c['Channel_Name'],
+            'Category':             c['Category'],
+            'Platform':             c['Platform'],
+            'Followers':            c['Followers'],
+            'Engagement_Rate':      c['Engagement_Rate'],
+            'Risk_Score':           c['Risk_Score'],
+            'category_score':       round(cat_score, 4),
+            'context_score':        round(ctx_score, 4),
+            'cf_score':             0.0,
+            'matching_score':       matching,
+            'recommendation_grade': grade_label(matching),
+        })
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows).nlargest(top_n, 'matching_score').copy()
+    df['Rank'] = range(1, len(df) + 1)
+    return df.reset_index(drop=True)
+
+
 # ── 헬퍼 함수 ─────────────────────────────────────────────────────────────────
 def fmt_followers(n):
     if n >= 100_000_000: return f"{n/100_000_000:.1f}억"
@@ -256,76 +355,94 @@ tab_match, tab_explore, tab_dashboard = st.tabs([
 # ════════════════════════════════════════════════════════════════════════════
 with tab_match:
 
-    st.markdown("<div class='section-title'>브랜드 조건 입력</div>", unsafe_allow_html=True)
-    st.caption("브랜드 정보를 선택하면 실제 협업 데이터를 기반으로 최적의 크리에이터를 매칭 점수 순으로 추천합니다.")
-    with st.container():
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            brand_options = brands[['Brand_ID', 'Brand_Name', 'Industry']].copy()
-            brand_options = brand_options.sort_values('Brand_Name').reset_index(drop=True)
-            brand_display = brand_options.apply(
-                lambda r: f"{r['Brand_Name']} ({r['Industry']})", axis=1
-            ).tolist()
-            selected_idx = st.selectbox("브랜드 선택", range(len(brand_display)),
-                                        format_func=lambda i: brand_display[i])
-            brand_id  = brand_options.iloc[selected_idx]['Brand_ID']
-            brand_row = brands[brands['Brand_ID'] == brand_id].iloc[0]
+    st.markdown(
+        "<div style='text-align:center;padding:2.5rem 0 0;'>"
+        "<div style='font-size:0.75rem;font-weight:600;color:#2433ff;letter-spacing:.08em;"
+        "text-transform:uppercase;margin-bottom:1rem;'>"
+        "· 리스크까지 측정하는 크리에이터 매칭</div>"
+        "<div style='font-family:serif;font-size:2.6rem;font-weight:400;line-height:1.1;"
+        "letter-spacing:-1px;margin-bottom:0.8rem;'>"
+        "어떤 크리에이터를<br>찾고 계신가요<span style='color:#2433ff;font-style:italic;'>?</span></div>"
+        "<div style='font-size:1rem;color:#76766f;line-height:1.75;margin-bottom:2rem;'>"
+        "브랜드와 캠페인을 자유롭게 설명해 주세요.<br>"
+        "Vouch가 성실함부터 팔로워 진정성까지 검증해 추천합니다.</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
-        with col2:
-            risk_threshold = st.slider(
-                "최소 Risk Score", 1.0, 5.0, 2.5, 0.5,
-                help=(
-                    "**콘텐츠 신뢰도 · 브랜드 안전성 지수**  \n"
-                    "4.0 ~ 5.0 — 우수 (브랜드 안전)  \n"
-                    "3.0 ~ 4.0 — 보통 (검토 권장)  \n"
-                    "2.5 ~ 3.0 — 주의 (선별 필요)  \n"
-                    "2.5 미만 — 자동 제외"
-                ),
-            )
-        with col3:
-            top_n = st.slider(
-                "추천 크리에이터 수", 1, 10, 3,
-                help=(
-                    "**매칭 점수** = 카테고리×0.3 + 조건매칭×0.3 + CF×0.4  \n"
-                    "A등급 0.9 이상 — 성공률 75.7%  \n"
-                    "B등급 0.8 ~ 0.9 — 성공률 58.8%  \n"
-                    "C등급 0.7 ~ 0.8 — 성공률 46.6%  \n"
-                    "D등급 0.7 미만 — 성공률 20.0%  \n"
-                    "**B등급 이상 추천**"
-                ),
-            )
+    brand_text = st.text_area(
+        label="브랜드 소개",
+        label_visibility="collapsed",
+        placeholder=(
+            "예) 저희는 2030 여성을 타깃으로 하는 비건 스킨케어 브랜드입니다. "
+            "신제품 세럼 런칭을 위해 진정성 있고 꾸준히 활동하는 뷰티 크리에이터를 찾고 있어요. "
+            "마감 약속을 잘 지키는 분이 특히 중요하고, 팔로워가 실제 구매로 이어질 수 있는 분이면 좋겠습니다."
+        ),
+        height=140,
+    )
 
+    col_o1, col_o2, col_o3, col_o4 = st.columns([2, 2, 2, 3])
+    with col_o1:
+        risk_threshold = st.selectbox(
+            "최소 Risk Score",
+            [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+            index=3,
+            help="**콘텐츠 신뢰도 · 브랜드 안전성 지수**\n\n4.0 이상: 우수 / 2.5~3.0: 주의",
+        )
+    with col_o2:
+        top_n = st.selectbox("추천 인원", [3, 5, 7, 10], index=0)
+    with col_o3:
+        st.write("")
+    with col_o4:
+        run = st.button("크리에이터 추천받기 →", type="primary", use_container_width=True)
 
+    st.markdown(
+        "<div style='display:flex;gap:8px;flex-wrap:wrap;margin:0.5rem 0 1.5rem;'>"
+        "<span style='font-size:0.8rem;color:#76766f;border:1px solid #e8e8e3;border-radius:999px;"
+        "padding:6px 14px;cursor:pointer;'>비건 스킨케어 런칭 캠페인</span>"
+        "<span style='font-size:0.8rem;color:#76766f;border:1px solid #e8e8e3;border-radius:999px;"
+        "padding:6px 14px;cursor:pointer;'>꾸준히 활동하는 데일리 브이로거</span>"
+        "<span style='font-size:0.8rem;color:#76766f;border:1px solid #e8e8e3;border-radius:999px;"
+        "padding:6px 14px;cursor:pointer;'>약속 잘 지키는 장기 앰배서더</span>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    # 추천 결과
+    if run or 'last_brand_text' in st.session_state:
+        if run:
+            st.session_state['last_brand_text']      = brand_text
+            st.session_state['last_risk_threshold']  = risk_threshold
+            st.session_state['last_top_n']           = top_n
+
+        _text          = st.session_state['last_brand_text']
+        risk_threshold = st.session_state['last_risk_threshold']
+        top_n          = st.session_state['last_top_n']
+
+        if not _text.strip():
+            st.warning("브랜드 소개를 입력해 주세요.")
+            st.stop()
+
+        with st.spinner("브리프를 분석하고 크리에이터를 추천하는 중..."):
+            brand_attrs = parse_brand_text(_text)
+            top_df      = recommend_from_text(brand_attrs, creators, risk_threshold, top_n)
+
+        # 파싱 결과 요약 태그
         st.markdown(
-            f"<div style='font-size:0.83rem;color:#666;margin:0.5rem 0 0.8rem;'>"
-            f"<b style='color:#1a3a5c;'>{brand_row['Brand_Name']}</b>"
-            f" &nbsp;·&nbsp; {brand_row['Industry']}"
-            f" &nbsp;·&nbsp; 월 예산 {brand_row['Monthly_Budget']:,}원"
-            f" &nbsp;·&nbsp; 타겟 {brand_row['Target_Age']} / {brand_row['Target_Gender']}"
-            f" &nbsp;·&nbsp; {brand_row['Preferred_Platform']}"
-            f"</div>",
+            "<div style='display:flex;gap:7px;flex-wrap:wrap;margin:0.5rem 0 0.2rem;'>"
+            f"<span style='font-size:0.8rem;color:#3a3a38;background:#fff;border:1px solid #e8e8e3;"
+            f"border-radius:999px;padding:5px 12px;'>업종 <b>{brand_attrs['Industry']}</b></span>"
+            f"<span style='font-size:0.8rem;color:#3a3a38;background:#fff;border:1px solid #e8e8e3;"
+            f"border-radius:999px;padding:5px 12px;'>타깃 <b>{brand_attrs['Target_Age']} / {brand_attrs['Target_Gender']}</b></span>"
+            f"<span style='font-size:0.8rem;color:#3a3a38;background:#fff;border:1px solid #e8e8e3;"
+            f"border-radius:999px;padding:5px 12px;'>플랫폼 <b>{brand_attrs['Preferred_Platform']}</b></span>"
+            f"<span style='font-size:0.8rem;color:#3a3a38;background:#fff;border:1px solid #e8e8e3;"
+            f"border-radius:999px;padding:5px 12px;'>Max CPM <b>{brand_attrs['Max_CPM']:,.0f}원</b></span>"
+            "</div>",
             unsafe_allow_html=True,
         )
 
-        st.markdown("<hr style='border:none;border-top:1px solid #e8edf2;margin:0.6rem 0 0.8rem;'>",
-                    unsafe_allow_html=True)
-        run = st.button("🔍 추천 받기", type="primary", use_container_width=True)
-
-    # 추천 결과
-    if run or 'last_brand_id' in st.session_state:
-        if run:
-            st.session_state.update({
-                'last_brand_id':       brand_id,
-                'last_risk_threshold': risk_threshold,
-                'last_top_n':          top_n,
-            })
-
-        brand_id       = st.session_state['last_brand_id']
-        risk_threshold = st.session_state['last_risk_threshold']
-        top_n          = st.session_state['last_top_n']
-        brand_row      = brands[brands['Brand_ID'] == brand_id].iloc[0]
-
-        top_df = recommend(brand_id, similarity_df, creators, risk_threshold, top_n)
+        brand_row = brand_attrs  # 하위 코드에서 brand_row['Industry'] 등 그대로 사용
 
         st.markdown("<div class='section-title'>추천 결과</div>", unsafe_allow_html=True)
 
@@ -421,7 +538,7 @@ with tab_match:
                                     st.plotly_chart(plotly_score_bar(row),
                                                     use_container_width=True,
                                                     config={'displayModeBar': False},
-                                                    key=f"score_bar_{brand_id}_{cat_label}_{c_id}")
+                                                    key=f"score_bar_text_{cat_label}_{c_id}")
                                     past = collabs[collabs['Creator_ID'] == c_id][
                                         ['Brand_ID', 'CTR', 'CVR', 'is_success']
                                     ].copy()
@@ -438,17 +555,14 @@ with tab_match:
             st.markdown("<div class='section-title'>매칭 점수 분포</div>",
                         unsafe_allow_html=True)
             with st.container():
-                brand_scores = similarity_df[similarity_df['Brand_ID'] == brand_id].copy()
-                risk_map_all = dict(zip(creators['Creator_ID'], creators['Risk_Score']))
-                brand_scores['Risk_Score'] = brand_scores['Creator_ID'].map(risk_map_all)
-                brand_scores = brand_scores[brand_scores['Risk_Score'] >= risk_threshold]
+                all_scores_df = recommend_from_text(brand_attrs, creators, risk_threshold=0.0, top_n=len(creators))
 
                 bins   = [0, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
                 labels = ['~0.4', '0.4~0.5', '0.5~0.6', '0.6~0.7',
                           '0.7~0.8', '0.8~0.9', '0.9~']
                 bin_colors = ['#e4e4e4','#d4d4d4','#c4d4e4','#a0bcd4',
                               '#e8c97a','#6a9ec8','#4aaa7a']
-                hist_data = pd.cut(brand_scores['matching_score'],
+                hist_data = pd.cut(all_scores_df['matching_score'],
                                    bins=bins, labels=labels).value_counts().sort_index()
 
                 y_max = int(hist_data.max() * 1.25) + 1
@@ -477,12 +591,12 @@ with tab_match:
                                     config={'displayModeBar': False})
                 with col_info:
                     st.markdown("**등급별 현황**")
-                    total = len(brand_scores)
+                    total = len(all_scores_df)
                     grade_ranges = [("A", 0.9, 1.1), ("B", 0.8, 0.9),
                                     ("C", 0.7, 0.8), ("D", 0.0, 0.7)]
                     for g, lo, hi in grade_ranges:
-                        cnt = ((brand_scores['matching_score'] >= lo) &
-                               (brand_scores['matching_score'] < hi)).sum()
+                        cnt = ((all_scores_df['matching_score'] >= lo) &
+                               (all_scores_df['matching_score'] < hi)).sum()
                         pct = cnt / total * 100 if total > 0 else 0
                         bar_w = int(pct)
                         st.markdown(f"""
@@ -520,7 +634,7 @@ with tab_match:
             )
             cases = pd.read_sql(
                 _similar_sql,
-                conn, params=[brand_row['Industry']] + top_creator_ids,
+                conn, params=[brand_attrs['Industry']] + top_creator_ids,
             )
             conn.close()
 
@@ -552,80 +666,6 @@ with tab_match:
                             "</div>",
                             unsafe_allow_html=True,
                         )
-
-            # ⑤ 같은 업종 브랜드 비교
-            st.markdown("<div class='section-title'>같은 업종 브랜드 비교</div>",
-                        unsafe_allow_html=True)
-            with st.container():
-                compare_brands = brands[
-                    (brands['Industry'] == brand_row['Industry']) &
-                    (brands['Brand_ID'] != brand_id)
-                ].head(4)
-
-                comp_rows = []
-                # 현재 브랜드
-                cur_sc  = similarity_df[similarity_df['Brand_ID'] == brand_id]
-                cur_avg = cur_sc['matching_score'].mean()
-                cur_top = cur_sc.nlargest(1, 'matching_score')
-                cur_top_name = name_map_c.get(
-                    cur_top.iloc[0]['Creator_ID'], "") if not cur_top.empty else ""
-                comp_rows.append({
-                    '브랜드': f"⭐ {brand_row['Brand_Name']}",
-                    '평균 매칭점수': round(cur_avg, 3),
-                    'Top 크리에이터': cur_top_name,
-                    '_current': True,
-                })
-                for _, br in compare_brands.iterrows():
-                    br_sc = similarity_df[similarity_df['Brand_ID'] == br['Brand_ID']]
-                    avg   = br_sc['matching_score'].mean()
-                    top1  = br_sc.nlargest(1, 'matching_score')
-                    top1_name = name_map_c.get(
-                        top1.iloc[0]['Creator_ID'], "") if not top1.empty else ""
-                    comp_rows.append({
-                        '브랜드': br['Brand_Name'],
-                        '평균 매칭점수': round(avg, 3),
-                        'Top 크리에이터': top1_name,
-                        '_current': False,
-                    })
-
-                comp_df = pd.DataFrame(comp_rows)
-                bar_colors = [
-                    "#2d6a9f" if r else "#b0c8d8"
-                    for r in comp_df['_current']
-                ]
-                comp_h = max(180, len(comp_df) * 44 + 40)
-                fig_comp = go.Figure(go.Bar(
-                    y=comp_df['브랜드'],
-                    x=comp_df['평균 매칭점수'],
-                    orientation='h',
-                    marker_color=bar_colors,
-                    text=[f"{v:.3f}" for v in comp_df['평균 매칭점수']],
-                    textposition='outside',
-                ))
-                fig_comp.update_layout(
-                    height=comp_h, margin=dict(l=0, r=60, t=10, b=10),
-                    plot_bgcolor='white', paper_bgcolor='white',
-                    xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
-                    yaxis=dict(showgrid=False, autorange='reversed'),
-                    font=dict(family='Noto Sans KR, sans-serif', size=12),
-                    bargap=0.5,
-                )
-                col_c1, col_c2 = st.columns([3, 2])
-                with col_c1:
-                    st.plotly_chart(fig_comp, use_container_width=True,
-                                    config={'displayModeBar': False})
-                with col_c2:
-                    disp_df = comp_df[['브랜드', '평균 매칭점수', 'Top 크리에이터']].copy()
-                    disp_df['평균 매칭점수'] = disp_df['평균 매칭점수'].map(lambda v: f"{v:.3f}")
-                    st.dataframe(
-                        disp_df,
-                        use_container_width=True, hide_index=True,
-                        column_config={
-                            '브랜드':      st.column_config.TextColumn(width="medium"),
-                            '평균 매칭점수': st.column_config.TextColumn(width="small"),
-                            'Top 크리에이터': st.column_config.TextColumn(width="medium"),
-                        }
-                    )
 
 
 
