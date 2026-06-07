@@ -28,89 +28,155 @@ st.set_page_config(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ── 디자인 시스템 ─────────────────────────────────────────────────────────────
-GRADE_COLOR  = {"A": "#1a7a4a", "B": "#2d6a9f", "C": "#b07c00", "D": "#c0392b"}
-GRADE_BG     = {"A": "#e8f7ef", "B": "#e8f0fb", "C": "#fdf6e3", "D": "#fdecea"}
-GRADE_BORDER = {"A": "#a3d9b8", "B": "#a3c0e8", "C": "#e8d5a0", "D": "#f0a8a0"}
+GRADE_COLOR  = {"A": "#15803d", "B": "#2433ff", "C": "#9a6207", "D": "#c42626"}
+GRADE_BG     = {"A": "#e4f4e7", "B": "rgba(36,51,255,.08)", "C": "#fbf0d9", "D": "#fbe6e4"}
+GRADE_BORDER = {"A": "#bbe3c4", "B": "#c0c8ff", "C": "#efd9a8", "D": "#f1c2bd"}
 GRADE_LABEL  = {"A": "강력 추천", "B": "추천", "C": "보통", "D": "참고"}
 RANK_MEDAL   = {1: "🥇", 2: "🥈", 3: "🥉"}
 PLOTLY_COLORS = [
-    "#2d6a9f", "#4a87bb", "#6aa3d0", "#8ec0e4", "#b0d4ee",
-    "#1a7a4a", "#3a9a6a", "#6abf90", "#9fdcb8", "#c5edd8",
+    "#2433ff", "#4a5fff", "#7a87ff", "#a8b0ff", "#d0d4ff",
+    "#15803d", "#3a9a6a", "#6abf90", "#9fdcb8", "#c5edd8",
     "#8a6aaa",
 ]
 
 # ── 전역 CSS ──────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+
+:root {
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --ink: #0f0f0e;
+  --ink-s: #3a3a38;
+  --muted: #76766f;
+  --faint: #adadA6;
+  --line: #e8e8e3;
+  --line-s: #d6d6d0;
+  --accent: #2433ff;
+  --accent-s: rgba(36,51,255,.08);
+  --safe: #15803d; --safe-bg: #e4f4e7; --safe-line: #bbe3c4;
+  --warn: #9a6207; --warn-bg: #fbf0d9; --warn-line: #efd9a8;
+  --risk: #c42626; --risk-bg: #fbe6e4; --risk-line: #f1c2bd;
+  --serif: 'Instrument Serif', serif;
+  --sans: 'Pretendard', 'Pretendard Variable', -apple-system, sans-serif;
+  --r: 14px; --r-lg: 20px; --r-sm: 9px;
+}
 
 html, body, [class*="css"], .stMarkdown, .stDataFrame,
-.stSelectbox, .stSlider, button, input, textarea {
-    font-family: 'Noto Sans KR', sans-serif !important;
+.stSelectbox, .stSlider, button, input, textarea, .stTabs {
+    font-family: var(--sans) !important;
+    color: var(--ink);
+    letter-spacing: -0.01em;
 }
 
-/* 탭 스타일 */
-.stTabs [data-baseweb="tab-list"] { gap: 8px; }
+/* 배경 */
+.stApp { background: var(--bg) !important; }
+section[data-testid="stSidebar"] { background: var(--surface) !important; }
+.block-container { padding-top: 1.5rem !important; max-width: 1100px; }
+
+/* 탭 */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px;
+    border-bottom: 1px solid var(--line) !important;
+    background: transparent !important;
+}
 .stTabs [data-baseweb="tab"] {
     border-radius: 8px 8px 0 0;
-    padding: 0.5rem 1.2rem;
+    padding: 0.55rem 1.3rem;
     font-weight: 600;
-    font-family: 'Noto Sans KR', sans-serif !important;
+    font-size: 0.9rem;
+    color: var(--muted) !important;
+    background: transparent !important;
+    border: none !important;
+}
+.stTabs [aria-selected="true"] {
+    color: var(--ink) !important;
+    border-bottom: 2px solid var(--ink) !important;
+    background: transparent !important;
 }
 
-/* 추천 받기 버튼 색상 통일 */
+/* 버튼 */
 .stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #1a3a5c, #2d6a9f) !important;
+    background: var(--ink) !important;
     border: none !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.3px;
+    border-radius: 999px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 0.01em;
+    padding: 0.65rem 1.6rem !important;
+    transition: background .15s !important;
 }
 .stButton > button[kind="primary"]:hover {
-    background: linear-gradient(135deg, #2d6a9f, #1a3a5c) !important;
-    box-shadow: 0 4px 14px rgba(45,106,159,0.35) !important;
+    background: var(--ink-s) !important;
+    box-shadow: none !important;
 }
 
-/* 카드 hover */
+/* 크리에이터 카드 */
 .creator-card {
-    border: 1px solid #e0e8f0;
-    border-radius: 14px;
-    padding: 1.4rem 1.2rem;
-    background: white;
-    transition: box-shadow 0.2s, transform 0.2s;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 1.5rem 1.4rem;
+    background: var(--surface);
+    transition: border-color .18s, box-shadow .18s;
     height: 100%;
 }
 .creator-card:hover {
-    box-shadow: 0 6px 24px rgba(45,106,159,0.13);
-    transform: translateY(-2px);
+    border-color: var(--line-s);
+    box-shadow: 0 12px 32px -16px rgba(15,14,14,.12);
 }
+
 /* KPI 카드 */
 .kpi-card {
-    background: #f8fafc;
-    border-radius: 10px;
-    padding: 1.1rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 1.2rem 1.5rem;
     text-align: center;
 }
-.kpi-value { font-size: 2rem; font-weight: 800; color: #1a3a5c; }
-.kpi-label { font-size: 0.82rem; color: #888; margin-top: 0.2rem; }
+.kpi-value {
+    font-family: var(--serif);
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1;
+}
+.kpi-label { font-size: 0.78rem; color: var(--muted); margin-top: 0.3rem; }
+
 /* 섹션 헤더 */
 .section-title {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: #1a3a5c;
-    margin: 2.2rem 0 0.9rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e4eaf0;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 2rem 0 0.8rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--line);
     display: block;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.2px;
 }
+
 /* 사유 태그 */
 .reason-tag {
     display: inline-block;
-    border-radius: 20px;
-    padding: 0.15rem 0.6rem;
-    font-size: 0.72rem;
+    border-radius: 999px;
+    padding: 0.18rem 0.65rem;
+    font-size: 0.71rem;
     font-weight: 600;
     margin: 0.1rem 0.1rem 0 0;
+    border: 1px solid transparent;
+}
+
+/* selectbox / text_area 테두리 */
+.stTextArea textarea, .stSelectbox > div > div {
+    border-radius: var(--r) !important;
+    border-color: var(--line) !important;
+    background: var(--surface) !important;
+    font-size: 0.95rem !important;
+}
+.stTextArea textarea:focus {
+    border-color: var(--line-s) !important;
+    box-shadow: 0 0 0 3px var(--accent-s) !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -272,11 +338,11 @@ def build_reasons(row, brand_row):
 
 def reason_tags_html(pos, neg):
     tags = "".join(
-        f"<span class='reason-tag' style='background:#e8f7ef;color:#1a7a4a;'>✔ {r}</span>"
+        f"<span class='reason-tag' style='background:var(--safe-bg);color:var(--safe);border-color:var(--safe-line);'>✔ {r}</span>"
         for r in pos
     )
     tags += "".join(
-        f"<span class='reason-tag' style='background:#fdecea;color:#c0392b;'>✖ {r}</span>"
+        f"<span class='reason-tag' style='background:var(--risk-bg);color:var(--risk);border-color:var(--risk-line);'>✖ {r}</span>"
         for r in neg
     )
     return tags
@@ -284,61 +350,48 @@ def reason_tags_html(pos, neg):
 def plotly_score_bar(row):
     labels = ['카테고리(CBF)', '조건매칭(CBF)', '협업필터링(CF)']
     values = [row['category_score'], row['context_score'], row['cf_score']]
-    colors = ['#6a9ec8', '#4aaa7a', '#e8c97a']
+    colors = ['#2433ff', '#15803d', '#9a6207']
     fig = go.Figure(go.Bar(
         x=values, y=labels, orientation='h',
         marker_color=colors,
         marker_line_width=0,
         text=[f"{v:.2f}" for v in values],
         textposition='outside',
-        width=0.45,
+        width=0.4,
     ))
     fig.update_layout(
         height=160, margin=dict(l=0, r=50, t=10, b=10),
         xaxis=dict(range=[0, 1.15], showgrid=False, visible=False),
-        yaxis=dict(showgrid=False),
-        plot_bgcolor='white', paper_bgcolor='white',
-        font=dict(family='Noto Sans KR, sans-serif', size=11),
+        yaxis=dict(showgrid=False, tickfont=dict(size=11, color='#76766f')),
+        plot_bgcolor='#fafaf9', paper_bgcolor='#fafaf9',
+        font=dict(family='Pretendard, sans-serif', size=11),
         bargap=0.5,
     )
     return fig
 
-# ── 헤더 + 소개 (통합) ────────────────────────────────────────────────────────
+# ── 헤더 ──────────────────────────────────────────────────────────────────────
 st.markdown(
-    "<div style='background:linear-gradient(135deg,#1a3a5c 0%,#2d6a9f 60%,#3a87c0 100%);"
-    "border-radius:16px;padding:2rem 2.2rem 1.6rem;margin-bottom:1.4rem;'>"
-    "<div style='display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;'>"
-    "<div>"
-    "<div style='font-size:0.68rem;font-weight:600;color:#a8c8e8;letter-spacing:2.5px;"
-    "text-transform:uppercase;margin-bottom:0.6rem;'>"
-    "KAIST BIZ &nbsp;·&nbsp; Business Analytics 2026"
+    "<div style='display:flex;align-items:center;justify-content:space-between;"
+    "padding:1.2rem 0 1rem;border-bottom:1px solid #e8e8e3;margin-bottom:0.5rem;'>"
+    "<div style='display:flex;align-items:center;gap:10px;'>"
+    "<span style='width:28px;height:28px;border-radius:7px;background:#0f0f0e;"
+    "color:#fafaf9;display:inline-flex;align-items:center;justify-content:center;"
+    "font-family:\"Instrument Serif\",serif;font-size:17px;line-height:1;'>V</span>"
+    "<span style='font-family:\"Instrument Serif\",serif;font-size:22px;letter-spacing:.2px;'>Vouch</span>"
     "</div>"
-    "<div style='font-size:2.4rem;font-weight:900;color:white;letter-spacing:-1.5px;line-height:1.1;'>"
-    "Creator <span style='color:#7ec8f0;'>Match</span>"
-    "</div>"
-    "<div style='font-size:0.9rem;color:#c8dff0;margin-top:0.7rem;line-height:1.75;'>"
-    "브랜드에는 맞는 크리에이터를, 크리에이터에는 맞는 브랜드를<br>"
-    "<span style='font-size:0.8rem;color:#90b8d8;'>"
-    "976건의 실제 협업 데이터를 기반으로 최적의 파트너를 점수로 추천합니다"
-    "</span>"
-    "</div>"
-    "</div>"
-    "<div style='display:flex;gap:2rem;align-items:center;padding-top:0.5rem;'>"
-    "<div style='text-align:center;'>"
-    "<div style='font-size:1.8rem;font-weight:800;color:white;line-height:1;'>490</div>"
-    "<div style='font-size:0.7rem;color:#a8c8e8;margin-top:0.3rem;letter-spacing:0.5px;'>크리에이터</div>"
-    "</div>"
-    "<div style='width:1px;height:2.2rem;background:rgba(255,255,255,0.2);'></div>"
-    "<div style='text-align:center;'>"
-    "<div style='font-size:1.8rem;font-weight:800;color:white;line-height:1;'>100</div>"
-    "<div style='font-size:0.7rem;color:#a8c8e8;margin-top:0.3rem;letter-spacing:0.5px;'>브랜드</div>"
-    "</div>"
-    "<div style='width:1px;height:2.2rem;background:rgba(255,255,255,0.2);'></div>"
-    "<div style='text-align:center;'>"
-    "<div style='font-size:1.8rem;font-weight:800;color:white;line-height:1;'>976</div>"
-    "<div style='font-size:0.7rem;color:#a8c8e8;margin-top:0.3rem;letter-spacing:0.5px;'>협업 이력</div>"
-    "</div>"
-    "</div>"
+    "<div style='display:flex;gap:2.5rem;align-items:center;font-size:0.82rem;color:#76766f;'>"
+    "<span style='display:flex;align-items:center;gap:5px;'>"
+    "<span style='font-family:\"Instrument Serif\",serif;font-size:1.3rem;color:#0f0f0e;line-height:1;'>490</span>"
+    "<span>크리에이터</span></span>"
+    "<span style='width:1px;height:1.2rem;background:#e8e8e3;display:inline-block;'></span>"
+    "<span style='display:flex;align-items:center;gap:5px;'>"
+    "<span style='font-family:\"Instrument Serif\",serif;font-size:1.3rem;color:#0f0f0e;line-height:1;'>100</span>"
+    "<span>브랜드</span></span>"
+    "<span style='width:1px;height:1.2rem;background:#e8e8e3;display:inline-block;'></span>"
+    "<span style='display:flex;align-items:center;gap:5px;'>"
+    "<span style='font-family:\"Instrument Serif\",serif;font-size:1.3rem;color:#0f0f0e;line-height:1;'>976</span>"
+    "<span>협업 이력</span></span>"
+    "<span style='font-size:0.75rem;color:#adadA6;'>KAIST BIZ · 2026</span>"
     "</div>"
     "</div>",
     unsafe_allow_html=True,
@@ -472,10 +525,8 @@ with tab_match:
                             rank_n     = int(row['Rank'])
                             medal_icon = RANK_MEDAL.get(rank_n, "")
                             medal = (
-                                f"<span style='font-family:\"Noto Sans KR\",sans-serif;"
-                                f"font-size:1rem;font-weight:700;color:#555;'>"
-                                f"{rank_n}위"
-                                f"{'&nbsp;' + medal_icon if medal_icon else ''}</span>"
+                                f"<span style='font-size:0.85rem;font-weight:700;color:#76766f;'>"
+                                f"{rank_n}위{'&nbsp;' + medal_icon if medal_icon else ''}</span>"
                             )
                             pos_reasons, neg_reasons = build_reasons(row, brand_row)
                             tags_html = reason_tags_html(pos_reasons, neg_reasons)
@@ -486,50 +537,47 @@ with tab_match:
                             score_pct  = int(row['matching_score'] * 100)
                             with col:
                                 card_html = (
-                                    f"<div class='creator-card' style='border-color:{border};"
-                                    f"border-top:3px solid {color};'>"
+                                    f"<div class='creator-card' style='border-color:{border};'>"
                                     f"<div style='display:flex;justify-content:space-between;"
-                                    f"align-items:center;margin-bottom:0.5rem;'>"
+                                    f"align-items:center;margin-bottom:0.75rem;'>"
                                     f"{medal}"
-                                    f"<span style='background:{bg};color:{color};"
-                                    f"border-radius:20px;padding:0.15rem 0.6rem;"
-                                    f"font-size:0.75rem;font-weight:700;'>{GRADE_LABEL[grade]}</span>"
+                                    f"<span style='background:{bg};color:{color};border:1px solid {border};"
+                                    f"border-radius:999px;padding:0.2rem 0.7rem;"
+                                    f"font-size:0.72rem;font-weight:600;'>{GRADE_LABEL[grade]}</span>"
                                     f"</div>"
-                                    f"<div style='font-size:1.1rem;font-weight:800;color:#1a3a5c;"
-                                    f"margin-bottom:0.3rem;letter-spacing:-0.3px;'>{row['Channel_Name']}</div>"
-                                    f"<div style='font-size:0.82rem;color:#888;margin-bottom:0.8rem;'>"
-                                    f"{row['Platform']} &nbsp;·&nbsp; {row['Category']}</div>"
-                                    f"<div style='margin-bottom:0.8rem;'>"
+                                    f"<div style='font-size:1.05rem;font-weight:700;color:#0f0f0e;"
+                                    f"margin-bottom:0.2rem;letter-spacing:-0.3px;'>{row['Channel_Name']}</div>"
+                                    f"<div style='font-size:0.8rem;color:#76766f;margin-bottom:1rem;'>"
+                                    f"{row['Platform']} · {row['Category']}</div>"
+                                    f"<div style='margin-bottom:0.9rem;'>"
                                     f"<div style='display:flex;justify-content:space-between;"
-                                    f"font-size:0.78rem;color:#666;margin-bottom:0.3rem;'>"
+                                    f"font-size:0.75rem;color:#76766f;margin-bottom:0.35rem;'>"
                                     f"<span>매칭 점수</span>"
-                                    f"<span style='font-weight:700;color:{color};'>"
-                                    f"{row['matching_score']:.2f} &nbsp; 등급 {grade}</span></div>"
-                                    f"<div style='background:#f0f0f0;border-radius:6px;height:8px;'>"
-                                    f"<div style='background:linear-gradient(90deg,{color}88,{color});"
-                                    f"height:8px;border-radius:6px;width:{score_pct}%;'></div></div></div>"
-                                    f"<div style='margin-bottom:0.8rem;'>"
+                                    f"<span style='font-weight:700;color:{color};'>{row['matching_score']:.2f}</span></div>"
+                                    f"<div style='background:#e8e8e3;border-radius:999px;height:4px;'>"
+                                    f"<div style='background:{color};height:4px;border-radius:999px;width:{score_pct}%;'></div></div></div>"
+                                    f"<div style='margin-bottom:0.9rem;'>"
                                     f"<div style='display:flex;justify-content:space-between;"
-                                    f"font-size:0.78rem;color:#666;margin-bottom:0.3rem;'>"
-                                    f"<span>👥 구독자</span>"
-                                    f"<span style='font-weight:600;'>{fmt_followers(row['Followers'])}</span></div>"
-                                    f"<div style='background:#f0f0f0;border-radius:6px;height:6px;'>"
-                                    f"<div style='background:#a3c0e8;height:6px;border-radius:6px;"
+                                    f"font-size:0.75rem;color:#76766f;margin-bottom:0.35rem;'>"
+                                    f"<span>구독자</span>"
+                                    f"<span style='font-weight:600;color:#0f0f0e;'>{fmt_followers(row['Followers'])}</span></div>"
+                                    f"<div style='background:#e8e8e3;border-radius:999px;height:3px;'>"
+                                    f"<div style='background:#adadA6;height:3px;border-radius:999px;"
                                     f"width:{follow_pct}%;'></div></div></div>"
-                                    f"<div style='display:flex;gap:0.6rem;margin-bottom:0.8rem;"
-                                    f"font-size:0.78rem;'>"
-                                    f"<div style='flex:1;background:#f8f9fa;border-radius:8px;"
-                                    f"padding:0.4rem;text-align:center;'>"
-                                    f"<div style='color:#888;font-size:0.7rem;'>참여율</div>"
-                                    f"<div style='font-weight:700;color:#1a3a5c;'>{row['Engagement_Rate']}%</div></div>"
-                                    f"<div style='flex:1;background:#f8f9fa;border-radius:8px;"
-                                    f"padding:0.4rem;text-align:center;'>"
-                                    f"<div style='color:#888;font-size:0.7rem;'>협업</div>"
-                                    f"<div style='font-weight:700;color:#1a3a5c;'>{n_collab}회</div></div>"
-                                    f"<div style='flex:1;background:#f8f9fa;border-radius:8px;"
-                                    f"padding:0.4rem;text-align:center;'>"
-                                    f"<div style='color:#888;font-size:0.7rem;'>Risk</div>"
-                                    f"<div style='font-weight:700;color:#1a3a5c;'>{row['Risk_Score']}</div></div></div>"
+                                    f"<div style='display:grid;grid-template-columns:1fr 1fr 1fr;"
+                                    f"gap:0.5rem;margin-bottom:0.9rem;'>"
+                                    f"<div style='background:#fafaf9;border:1px solid #e8e8e3;border-radius:10px;"
+                                    f"padding:0.45rem 0.5rem;text-align:center;'>"
+                                    f"<div style='color:#76766f;font-size:0.68rem;margin-bottom:2px;'>참여율</div>"
+                                    f"<div style='font-weight:700;font-size:0.9rem;color:#0f0f0e;'>{row['Engagement_Rate']}%</div></div>"
+                                    f"<div style='background:#fafaf9;border:1px solid #e8e8e3;border-radius:10px;"
+                                    f"padding:0.45rem 0.5rem;text-align:center;'>"
+                                    f"<div style='color:#76766f;font-size:0.68rem;margin-bottom:2px;'>협업</div>"
+                                    f"<div style='font-weight:700;font-size:0.9rem;color:#0f0f0e;'>{n_collab}회</div></div>"
+                                    f"<div style='background:#fafaf9;border:1px solid #e8e8e3;border-radius:10px;"
+                                    f"padding:0.45rem 0.5rem;text-align:center;'>"
+                                    f"<div style='color:#76766f;font-size:0.68rem;margin-bottom:2px;'>Risk</div>"
+                                    f"<div style='font-weight:700;font-size:0.9rem;color:#0f0f0e;'>{row['Risk_Score']}</div></div></div>"
                                     f"<div>{tags_html}</div>"
                                     f"</div>"
                                 )
@@ -560,8 +608,8 @@ with tab_match:
                 bins   = [0, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
                 labels = ['~0.4', '0.4~0.5', '0.5~0.6', '0.6~0.7',
                           '0.7~0.8', '0.8~0.9', '0.9~']
-                bin_colors = ['#e4e4e4','#d4d4d4','#c4d4e4','#a0bcd4',
-                              '#e8c97a','#6a9ec8','#4aaa7a']
+                bin_colors = ['#e8e8e3','#d6d6d0','#c0c8ff','#a8b0ff',
+                              '#efd9a8','#bbe3c4','#15803d']
                 hist_data = pd.cut(all_scores_df['matching_score'],
                                    bins=bins, labels=labels).value_counts().sort_index()
 
@@ -577,11 +625,11 @@ with tab_match:
                 ))
                 fig_hist.update_layout(
                     height=220, margin=dict(l=0, r=0, t=24, b=0),
-                    plot_bgcolor='white', paper_bgcolor='white',
+                    plot_bgcolor='#fafaf9', paper_bgcolor='#fafaf9',
                     yaxis=dict(range=[0, y_max], showgrid=True,
-                               gridcolor='#f0f0f0', tickfont=dict(size=11)),
-                    xaxis=dict(showgrid=False, tickfont=dict(size=11)),
-                    font=dict(family='Noto Sans KR, sans-serif', size=12),
+                               gridcolor='#e8e8e3', tickfont=dict(size=11, color='#76766f')),
+                    xaxis=dict(showgrid=False, tickfont=dict(size=11, color='#76766f')),
+                    font=dict(family='Pretendard, sans-serif', size=12),
                     bargap=0.3,
                 )
 
