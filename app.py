@@ -417,6 +417,9 @@ with tab_match:
 
     if 'brief_input' not in st.session_state:
         st.session_state['brief_input'] = ''
+    # 칩 클릭으로 주입된 텍스트가 있으면 위젯 렌더 전에 적용
+    if '_chip_pending' in st.session_state:
+        st.session_state['brief_input'] = st.session_state.pop('_chip_pending')
 
     brand_text = st.text_area(
         label="브랜드 소개",
@@ -468,7 +471,7 @@ with tab_match:
     chip_c1, chip_c2, chip_c3 = st.columns(3)
     for chip_col, (chip_label, chip_text) in zip([chip_c1, chip_c2, chip_c3], CHIP_EXAMPLES):
         if chip_col.button(chip_label, key=f"chip_{chip_label}", use_container_width=True):
-            st.session_state['brief_input']         = chip_text
+            st.session_state['_chip_pending']       = chip_text
             st.session_state['last_brand_text']     = chip_text
             st.session_state['last_risk_threshold'] = risk_threshold
             st.session_state['last_top_n']          = top_n
