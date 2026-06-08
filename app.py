@@ -391,7 +391,7 @@ st.markdown(
 
 # ── 메인 탭 ───────────────────────────────────────────────────────────────────
 tab_about, tab_match, tab_explore, tab_dashboard = st.tabs([
-    "About", "🎯 브랜드 매칭", "🔍 크리에이터 탐색 β", "📊 성과 대시보드"
+    "About", "🎯 브랜드 매칭", "(베타) 크리에이터 탐색", "📊 성과 대시보드"
 ])
 
 
@@ -430,19 +430,8 @@ with tab_match:
         key='brief_input',
     )
 
-    col_o1, col_o2 = st.columns([3, 7])
+    col_o1, col_o2, col_o3 = st.columns([3, 3, 4])
     with col_o1:
-        top_n = st.selectbox(
-            "추천 인원",
-            list(range(1, 11)),
-            index=2,
-            help="추천받을 크리에이터 수를 선택하세요 (1~10명).",
-        )
-    with col_o2:
-        st.write("")
-        run = st.button("크리에이터 추천받기 →", type="primary", use_container_width=True)
-
-    with st.expander("⚙️ 고급 설정"):
         risk_threshold = st.selectbox(
             "최소 Risk Score",
             [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
@@ -453,23 +442,36 @@ with tab_match:
                 "- **4.0 ~ 5.0** — 우수: 브랜드 안전, 적극 추천\n"
                 "- **3.0 ~ 4.0** — 양호: 대부분 안전, 검토 권장\n"
                 "- **2.5 ~ 3.0** — 주의: 선별 필요, 면밀한 검토 요망\n"
-                "- **2.5 미만** — 자동 제외\n\n"
-                "기준을 높일수록 추천 후보가 줄어들 수 있습니다."
+                "- **2.5 미만** — 자동 제외"
             ),
         )
+    with col_o2:
+        top_n = st.selectbox(
+            "추천 인원",
+            list(range(1, 11)),
+            index=2,
+            help="추천받을 크리에이터 수를 선택하세요 (1~10명).",
+        )
+    with col_o3:
+        st.write("")
+        run = st.button("크리에이터 추천받기 →", type="primary", use_container_width=True)
 
+    # 실제 데이터 기반 예시 칩 (헬스케어·게임·패션 업종이 성공 협업 사례 가장 많음)
     CHIP_EXAMPLES = [
-        ("비건 스킨케어 런칭 캠페인",
-         "저희는 2030 여성을 타깃으로 하는 비건 스킨케어 브랜드입니다. 신제품 세럼 런칭을 위해 진정성 있고 꾸준히 활동하는 뷰티 크리에이터를 찾고 있어요. 마감 약속을 잘 지키는 분이 특히 중요하고, 팔로워가 실제 구매로 이어질 수 있는 분이면 좋겠습니다."),
-        ("꾸준히 활동하는 데일리 브이로거",
-         "매주 일상을 꾸준히 기록하는 데일리 브이로거를 찾습니다. 6개월 이상 정기 협업을 목표로 하며, 라이프스타일 콘텐츠를 통해 자연스럽게 제품을 노출할 수 있는 분을 찾고 있어요. 업로드가 끊기지 않고 시청자와 관계가 끈끈한 분이면 좋겠습니다."),
-        ("약속 잘 지키는 장기 앰배서더",
-         "장기 브랜드 앰배서더 1명을 찾습니다. 화려한 화제성보다 일정을 어기지 않고 커뮤니케이션이 매끄러운 신뢰도 높은 분이 최우선입니다. 패션 또는 라이프스타일 크리에이터를 선호합니다."),
+        ("헬스케어 브랜드 — 피트니스 크리에이터",
+         "저희는 3554 남녀를 타깃으로 하는 헬스케어 브랜드입니다. 영양제 신제품 출시를 앞두고 피트니스·건강 콘텐츠를 꾸준히 올리는 크리에이터를 찾고 있어요. 팔로워 진정성이 높고 신뢰도 있는 분을 우선합니다."),
+        ("게임 주변기기 브랜드 — e스포츠 채널",
+         "게임 주변기기 브랜드로, 1324 남성 유튜브 시청자에게 신제품을 알리고 싶습니다. 게이밍 리뷰·e스포츠 관련 콘텐츠를 제작하는 크리에이터와 장기 파트너십을 원합니다."),
+        ("패션 브랜드 — 2030 여성 타깃",
+         "2030 여성을 위한 패션 브랜드입니다. 의류와 스타일 코디 콘텐츠를 인스타그램 또는 유튜브에서 활발히 운영하는 분을 찾습니다. 약속 이행과 커뮤니케이션을 중시합니다."),
     ]
     chip_c1, chip_c2, chip_c3 = st.columns(3)
     for chip_col, (chip_label, chip_text) in zip([chip_c1, chip_c2, chip_c3], CHIP_EXAMPLES):
         if chip_col.button(chip_label, key=f"chip_{chip_label}", use_container_width=True):
-            st.session_state['brief_input'] = chip_text
+            st.session_state['brief_input']         = chip_text
+            st.session_state['last_brand_text']     = chip_text
+            st.session_state['last_risk_threshold'] = risk_threshold
+            st.session_state['last_top_n']          = top_n
             st.rerun()
 
     # 추천 결과
@@ -543,8 +545,11 @@ with tab_match:
                     rows_list = list(filtered.iterrows())
                     for row_start in range(0, len(rows_list), 3):
                         chunk = rows_list[row_start:row_start + 3]
-                        cols  = st.columns(len(chunk))
-                        for col, (_, row) in zip(cols, chunk):
+                        n_cols = len(chunk)
+
+                        # ── 1st pass: 카드 (같은 높이 유지)
+                        card_cols = st.columns(n_cols)
+                        for col, (_, row) in zip(card_cols, chunk):
                             grade  = row.get('recommendation_grade', grade_label(row['matching_score']))
                             color  = GRADE_COLOR[grade]
                             bg     = GRADE_BG[grade]
@@ -559,56 +564,60 @@ with tab_match:
                             tags_html = reason_tags_html(pos_reasons, neg_reasons)
                             c_id       = row['Creator_ID']
                             n_collab   = collab_count.get(c_id, 0)
-                            n_success  = collab_success.get(c_id, 0)
                             follow_pct = min(int(row['Followers'] / max_followers * 100), 100)
                             score_pct  = int(row['matching_score'] * 100)
-                            with col:
-                                card_html = (
-                                    f"<div class='creator-card' style='border-color:{border};'>"
-                                    f"<div style='display:flex;justify-content:space-between;"
-                                    f"align-items:center;margin-bottom:0.75rem;'>"
-                                    f"{medal}"
-                                    f"<span style='background:{bg};color:{color};border:1px solid {border};"
-                                    f"border-radius:999px;padding:0.2rem 0.7rem;"
-                                    f"font-size:0.72rem;font-weight:600;'>{GRADE_LABEL[grade]}</span>"
-                                    f"</div>"
-                                    f"<div style='font-size:1.05rem;font-weight:700;color:#0f0f0e;"
-                                    f"margin-bottom:0.2rem;letter-spacing:-0.3px;'>{row['Channel_Name']}</div>"
-                                    f"<div style='font-size:0.8rem;color:#76766f;margin-bottom:1rem;'>"
-                                    f"{row['Platform']} · {row['Category']}</div>"
-                                    f"<div style='margin-bottom:0.9rem;'>"
-                                    f"<div style='display:flex;justify-content:space-between;"
-                                    f"font-size:0.75rem;color:#76766f;margin-bottom:0.35rem;'>"
-                                    f"<span>매칭 점수</span>"
-                                    f"<span style='font-weight:700;color:{color};'>{row['matching_score']:.2f}</span></div>"
-                                    f"<div style='background:#e8e8e3;border-radius:999px;height:4px;'>"
-                                    f"<div style='background:{color};height:4px;border-radius:999px;width:{score_pct}%;'></div></div></div>"
-                                    f"<div style='margin-bottom:0.9rem;'>"
-                                    f"<div style='display:flex;justify-content:space-between;"
-                                    f"font-size:0.75rem;color:#76766f;margin-bottom:0.35rem;'>"
-                                    f"<span>구독자</span>"
-                                    f"<span style='font-weight:600;color:#0f0f0e;'>{fmt_followers(row['Followers'])}</span></div>"
-                                    f"<div style='background:#e8e8e3;border-radius:999px;height:3px;'>"
-                                    f"<div style='background:#adadA6;height:3px;border-radius:999px;"
-                                    f"width:{follow_pct}%;'></div></div></div>"
-                                    f"<div style='display:grid;grid-template-columns:1fr 1fr 1fr;"
-                                    f"gap:0.5rem;margin-bottom:0.9rem;'>"
-                                    f"<div style='background:#fafaf9;border:1px solid #e8e8e3;border-radius:10px;"
-                                    f"padding:0.45rem 0.5rem;text-align:center;'>"
-                                    f"<div style='color:#76766f;font-size:0.68rem;margin-bottom:2px;'>참여율</div>"
-                                    f"<div style='font-weight:700;font-size:0.9rem;color:#0f0f0e;'>{row['Engagement_Rate']}%</div></div>"
-                                    f"<div style='background:#fafaf9;border:1px solid #e8e8e3;border-radius:10px;"
-                                    f"padding:0.45rem 0.5rem;text-align:center;'>"
-                                    f"<div style='color:#76766f;font-size:0.68rem;margin-bottom:2px;'>협업</div>"
-                                    f"<div style='font-weight:700;font-size:0.9rem;color:#0f0f0e;'>{n_collab}회</div></div>"
-                                    f"<div style='background:#fafaf9;border:1px solid #e8e8e3;border-radius:10px;"
-                                    f"padding:0.45rem 0.5rem;text-align:center;'>"
-                                    f"<div style='color:#76766f;font-size:0.68rem;margin-bottom:2px;'>Risk</div>"
-                                    f"<div style='font-weight:700;font-size:0.9rem;color:#0f0f0e;'>{row['Risk_Score']}</div></div></div>"
-                                    f"<div>{tags_html}</div>"
-                                    f"</div>"
-                                )
-                                st.markdown(card_html, unsafe_allow_html=True)
+                            card_html = (
+                                f"<div class='creator-card' style='border-color:{border};'>"
+                                f"<div style='display:flex;justify-content:space-between;"
+                                f"align-items:center;margin-bottom:0.75rem;'>"
+                                f"{medal}"
+                                f"<span style='background:{bg};color:{color};border:1px solid {border};"
+                                f"border-radius:999px;padding:0.2rem 0.7rem;"
+                                f"font-size:0.72rem;font-weight:600;'>{GRADE_LABEL[grade]}</span>"
+                                f"</div>"
+                                f"<div style='font-size:1.05rem;font-weight:700;color:#0f0f0e;"
+                                f"margin-bottom:0.2rem;letter-spacing:-0.3px;'>{row['Channel_Name']}</div>"
+                                f"<div style='font-size:0.8rem;color:#76766f;margin-bottom:1rem;'>"
+                                f"{row['Platform']} · {row['Category']}</div>"
+                                f"<div style='margin-bottom:0.9rem;'>"
+                                f"<div style='display:flex;justify-content:space-between;"
+                                f"font-size:0.75rem;color:#76766f;margin-bottom:0.35rem;'>"
+                                f"<span>매칭 점수</span>"
+                                f"<span style='font-weight:700;color:{color};'>{row['matching_score']:.2f}</span></div>"
+                                f"<div style='background:#e8e8e3;border-radius:999px;height:4px;'>"
+                                f"<div style='background:{color};height:4px;border-radius:999px;width:{score_pct}%;'></div></div></div>"
+                                f"<div style='margin-bottom:0.9rem;'>"
+                                f"<div style='display:flex;justify-content:space-between;"
+                                f"font-size:0.75rem;color:#76766f;margin-bottom:0.35rem;'>"
+                                f"<span>구독자</span>"
+                                f"<span style='font-weight:600;color:#0f0f0e;'>{fmt_followers(row['Followers'])}</span></div>"
+                                f"<div style='background:#e8e8e3;border-radius:999px;height:3px;'>"
+                                f"<div style='background:#adadA6;height:3px;border-radius:999px;"
+                                f"width:{follow_pct}%;'></div></div></div>"
+                                f"<div style='display:grid;grid-template-columns:1fr 1fr 1fr;"
+                                f"gap:0.5rem;margin-bottom:0.9rem;'>"
+                                f"<div style='background:#fafaf9;border:1px solid #e8e8e3;border-radius:10px;"
+                                f"padding:0.45rem 0.5rem;text-align:center;'>"
+                                f"<div style='color:#76766f;font-size:0.68rem;margin-bottom:2px;'>참여율</div>"
+                                f"<div style='font-weight:700;font-size:0.9rem;color:#0f0f0e;'>{row['Engagement_Rate']}%</div></div>"
+                                f"<div style='background:#fafaf9;border:1px solid #e8e8e3;border-radius:10px;"
+                                f"padding:0.45rem 0.5rem;text-align:center;'>"
+                                f"<div style='color:#76766f;font-size:0.68rem;margin-bottom:2px;'>협업</div>"
+                                f"<div style='font-weight:700;font-size:0.9rem;color:#0f0f0e;'>{n_collab}회</div></div>"
+                                f"<div style='background:#fafaf9;border:1px solid #e8e8e3;border-radius:10px;"
+                                f"padding:0.45rem 0.5rem;text-align:center;'>"
+                                f"<div style='color:#76766f;font-size:0.68rem;margin-bottom:2px;'>Risk</div>"
+                                f"<div style='font-weight:700;font-size:0.9rem;color:#0f0f0e;'>{row['Risk_Score']}</div></div></div>"
+                                f"<div>{tags_html}</div>"
+                                f"</div>"
+                            )
+                            col.markdown(card_html, unsafe_allow_html=True)
+
+                        # ── 2nd pass: 상세 분석 expander (카드와 분리해서 높이 영향 없음)
+                        exp_cols = st.columns(n_cols)
+                        for exp_col, (_, row) in zip(exp_cols, chunk):
+                            c_id = row['Creator_ID']
+                            with exp_col:
                                 with st.expander("📊 상세 분석"):
                                     st.plotly_chart(plotly_score_bar(row),
                                                     use_container_width=True,
