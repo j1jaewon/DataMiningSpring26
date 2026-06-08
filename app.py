@@ -175,6 +175,11 @@ section[data-testid="stSidebar"] { background: var(--surface) !important; }
     border-color: var(--line-s) !important;
     box-shadow: 0 0 0 3px var(--accent-s) !important;
 }
+/* 모바일 대응 */
+@media (max-width: 768px) {
+  .creator-card { padding: 1.1rem 1rem; }
+  .kpi-value { font-size: 1.5rem; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -420,6 +425,9 @@ with tab_match:
         unsafe_allow_html=True,
     )
 
+    if 'brief_input' not in st.session_state:
+        st.session_state['brief_input'] = ''
+
     brand_text = st.text_area(
         label="브랜드 소개",
         label_visibility="collapsed",
@@ -429,6 +437,7 @@ with tab_match:
             "마감 약속을 잘 지키는 분이 특히 중요하고, 팔로워가 실제 구매로 이어질 수 있는 분이면 좋겠습니다."
         ),
         height=140,
+        key='brief_input',
     )
 
     col_o1, col_o2, col_o3 = st.columns([3, 3, 4])
@@ -466,17 +475,19 @@ with tab_match:
         st.write("")
         run = st.button("크리에이터 추천받기 →", type="primary", use_container_width=True)
 
-    st.markdown(
-        "<div style='display:flex;gap:8px;flex-wrap:wrap;margin:0.5rem 0 1.5rem;'>"
-        "<span style='font-size:0.8rem;color:#76766f;border:1px solid #e8e8e3;border-radius:999px;"
-        "padding:6px 14px;cursor:pointer;'>비건 스킨케어 런칭 캠페인</span>"
-        "<span style='font-size:0.8rem;color:#76766f;border:1px solid #e8e8e3;border-radius:999px;"
-        "padding:6px 14px;cursor:pointer;'>꾸준히 활동하는 데일리 브이로거</span>"
-        "<span style='font-size:0.8rem;color:#76766f;border:1px solid #e8e8e3;border-radius:999px;"
-        "padding:6px 14px;cursor:pointer;'>약속 잘 지키는 장기 앰배서더</span>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    CHIP_EXAMPLES = [
+        ("비건 스킨케어 런칭 캠페인",
+         "저희는 2030 여성을 타깃으로 하는 비건 스킨케어 브랜드입니다. 신제품 세럼 런칭을 위해 진정성 있고 꾸준히 활동하는 뷰티 크리에이터를 찾고 있어요. 마감 약속을 잘 지키는 분이 특히 중요하고, 팔로워가 실제 구매로 이어질 수 있는 분이면 좋겠습니다."),
+        ("꾸준히 활동하는 데일리 브이로거",
+         "매주 일상을 꾸준히 기록하는 데일리 브이로거를 찾습니다. 6개월 이상 정기 협업을 목표로 하며, 라이프스타일 콘텐츠를 통해 자연스럽게 제품을 노출할 수 있는 분을 찾고 있어요. 업로드가 끊기지 않고 시청자와 관계가 끈끈한 분이면 좋겠습니다."),
+        ("약속 잘 지키는 장기 앰배서더",
+         "장기 브랜드 앰배서더 1명을 찾습니다. 화려한 화제성보다 일정을 어기지 않고 커뮤니케이션이 매끄러운 신뢰도 높은 분이 최우선입니다. 패션 또는 라이프스타일 크리에이터를 선호합니다."),
+    ]
+    chip_c1, chip_c2, chip_c3 = st.columns(3)
+    for chip_col, (chip_label, chip_text) in zip([chip_c1, chip_c2, chip_c3], CHIP_EXAMPLES):
+        if chip_col.button(chip_label, key=f"chip_{chip_label}", use_container_width=True):
+            st.session_state['brief_input'] = chip_text
+            st.rerun()
 
     # 추천 결과
     if run or 'last_brand_text' in st.session_state:
@@ -497,17 +508,24 @@ with tab_match:
             brand_attrs = parse_brand_text(_text)
             top_df      = recommend_from_text(brand_attrs, creators, risk_threshold, top_n)
 
-        # 파싱 결과 요약 태그
+        # 파싱 결과 요약 카드
+        _brief_preview = _text[:80] + '...' if len(_text) > 80 else _text
         st.markdown(
-            "<div style='display:flex;gap:7px;flex-wrap:wrap;margin:0.5rem 0 0.2rem;'>"
-            f"<span style='font-size:0.8rem;color:#3a3a38;background:#fff;border:1px solid #e8e8e3;"
-            f"border-radius:999px;padding:5px 12px;'>업종 <b>{brand_attrs['Industry']}</b></span>"
-            f"<span style='font-size:0.8rem;color:#3a3a38;background:#fff;border:1px solid #e8e8e3;"
-            f"border-radius:999px;padding:5px 12px;'>타깃 <b>{brand_attrs['Target_Age']} / {brand_attrs['Target_Gender']}</b></span>"
-            f"<span style='font-size:0.8rem;color:#3a3a38;background:#fff;border:1px solid #e8e8e3;"
-            f"border-radius:999px;padding:5px 12px;'>플랫폼 <b>{brand_attrs['Preferred_Platform']}</b></span>"
-            f"<span style='font-size:0.8rem;color:#3a3a38;background:#fff;border:1px solid #e8e8e3;"
-            f"border-radius:999px;padding:5px 12px;'>Max CPM <b>{brand_attrs['Max_CPM']:,.0f}원</b></span>"
+            "<div style='background:#fafaf9;border:1px solid #e8e8e3;border-radius:12px;"
+            "padding:1rem 1.2rem;margin:0.8rem 0 0.3rem;'>"
+            "<div style='font-size:0.72rem;font-weight:600;color:#76766f;letter-spacing:.08em;"
+            "text-transform:uppercase;margin-bottom:0.5rem;'>브리프 분석 결과</div>"
+            f"<div style='font-size:0.88rem;color:#3a3a38;margin-bottom:0.7rem;line-height:1.6;'>\"{_brief_preview}\"</div>"
+            "<div style='display:flex;gap:6px;flex-wrap:wrap;'>"
+            f"<span style='font-size:0.75rem;font-weight:600;color:#15803d;background:#e4f4e7;"
+            f"border:1px solid #bbe3c4;border-radius:999px;padding:3px 10px;'>업종 {brand_attrs['Industry']}</span>"
+            f"<span style='font-size:0.75rem;font-weight:600;color:#3a3a38;background:#fafaf9;"
+            f"border:1px solid #e8e8e3;border-radius:999px;padding:3px 10px;'>타깃 {brand_attrs['Target_Age']} / {brand_attrs['Target_Gender']}</span>"
+            f"<span style='font-size:0.75rem;font-weight:600;color:#3a3a38;background:#fafaf9;"
+            f"border:1px solid #e8e8e3;border-radius:999px;padding:3px 10px;'>플랫폼 {brand_attrs['Preferred_Platform']}</span>"
+            f"<span style='font-size:0.75rem;font-weight:600;color:#3a3a38;background:#fafaf9;"
+            f"border:1px solid #e8e8e3;border-radius:999px;padding:3px 10px;'>Max CPM {brand_attrs['Max_CPM']:,.0f}원</span>"
+            "</div>"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -704,7 +722,18 @@ with tab_match:
             conn.close()
 
             if cases.empty:
-                st.info("동일 업종의 성공 협업 사례가 없습니다.")
+                st.markdown(
+                    "<div style='text-align:center;padding:2rem 1rem;border:1px dashed #e8e8e3;"
+                    "border-radius:14px;margin:0.5rem 0;'>"
+                    "<div style='font-size:1.8rem;margin-bottom:0.5rem;'>🔍</div>"
+                    "<div style='font-size:0.95rem;font-weight:600;color:#0f0f0e;margin-bottom:0.3rem;'>"
+                    "유사 사례를 찾지 못했어요</div>"
+                    "<div style='font-size:0.82rem;color:#76766f;line-height:1.6;'>"
+                    f"{brand_attrs['Industry']} 업종의 성공 협업 데이터가 아직 충분하지 않습니다.<br>"
+                    "브리프에 다른 키워드를 추가하거나 업종을 바꿔 검색해보세요.</div>"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
             else:
                 with st.container():
                     st.markdown(
@@ -753,6 +782,14 @@ with tab_explore:
     st.markdown("<div class='section-title'>크리에이터 탐색</div>", unsafe_allow_html=True)
     st.caption("크리에이터 관점에서 협업 가능성이 높은 브랜드를 역방향으로 조회합니다.")
 
+    st.markdown(
+        "<div style='display:flex;align-items:center;gap:10px;margin:1.2rem 0 0.6rem;'>"
+        "<span style='width:22px;height:22px;border-radius:50%;background:#0f0f0e;color:#fafaf9;"
+        "display:inline-flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;'>1</span>"
+        "<span style='font-size:0.9rem;font-weight:600;'>필터 설정</span>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
     with st.container():
         ecol1, ecol2, ecol3 = st.columns(3)
         with ecol1:
@@ -784,6 +821,14 @@ with tab_explore:
     if fc.empty:
         st.warning("조건에 맞는 크리에이터가 없습니다.")
     else:
+        st.markdown(
+            "<div style='display:flex;align-items:center;gap:10px;margin:1.5rem 0 0.6rem;'>"
+            "<span style='width:22px;height:22px;border-radius:50%;background:#0f0f0e;color:#fafaf9;"
+            "display:inline-flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;'>2</span>"
+            "<span style='font-size:0.9rem;font-weight:600;'>크리에이터 선택</span>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
         sel_creator = st.selectbox("크리에이터 선택", fc['Channel_Name'].tolist(),
                                    key="explore_creator_select")
         sel_cid_exp = fc[fc['Channel_Name'] == sel_creator].iloc[0]['Creator_ID']
@@ -882,10 +927,10 @@ with tab_dashboard:
 
     k1, k2, k3, k4 = st.columns(4)
     for col, val, label, color in [
-        (k1, f"{total_collabs:,}건", "총 협업 수",  "#1a3a5c"),
-        (k2, f"{success_rate:.1f}%", "성공률",      "#1a7a4a"),
-        (k3, f"{avg_ctr:.2f}%",      "평균 CTR",   "#2d6a9f"),
-        (k4, f"{avg_cvr:.2f}%",      "평균 CVR",   "#b07c00"),
+        (k1, f"{total_collabs:,}건", "총 협업 수",  "#0f0f0e"),
+        (k2, f"{success_rate:.1f}%", "성공률",      "#15803d"),
+        (k3, f"{avg_ctr:.2f}%",      "평균 CTR",   "#2433ff"),
+        (k4, f"{avg_cvr:.2f}%",      "평균 CVR",   "#9a6207"),
     ]:
         col.markdown(f"""
         <div class='kpi-card'>
