@@ -395,8 +395,8 @@ st.markdown(
 )
 
 # ── 메인 탭 ───────────────────────────────────────────────────────────────────
-tab_match, tab_explore, tab_dashboard = st.tabs([
-    "🎯 브랜드 매칭", "🔍 크리에이터 탐색", "📊 성과 대시보드"
+tab_match, tab_explore, tab_dashboard, tab_about = st.tabs([
+    "🎯 브랜드 매칭", "🔍 크리에이터 탐색", "📊 성과 대시보드", "ℹ️ About"
 ])
 
 
@@ -407,12 +407,12 @@ with tab_match:
 
     st.markdown(
         "<div style='text-align:center;padding:2.5rem 0 0;'>"
-        "<div style='font-size:0.75rem;font-weight:600;color:#2433ff;letter-spacing:.08em;"
-        "text-transform:uppercase;margin-bottom:1rem;'>"
+        "<div style='font-size:0.75rem;font-weight:600;color:#76766f;letter-spacing:.08em;"
+        "text-transform:uppercase;margin-bottom:1rem;font-family:Pretendard,sans-serif;'>"
         "· 리스크까지 측정하는 크리에이터 매칭</div>"
         "<div style='font-size:2.6rem;font-weight:700;line-height:1.1;"
-        "letter-spacing:-1px;margin-bottom:0.8rem;'>"
-        "어떤 크리에이터를<br>찾고 계신가요<span style='color:#2433ff;font-style:italic;'>?</span></div>"
+        "letter-spacing:-1px;margin-bottom:0.8rem;font-family:Pretendard,sans-serif;color:#0f0f0e;'>"
+        "어떤 크리에이터를<br>찾고 계신가요?</div>"
         "<div style='font-size:1rem;color:#76766f;line-height:1.75;margin-bottom:2rem;'>"
         "브랜드와 캠페인을 자유롭게 설명해 주세요.<br>"
         "Vouch가 성실함부터 팔로워 진정성까지 검증해 추천합니다.</div>"
@@ -718,6 +718,18 @@ with tab_match:
 # TAB 2: 크리에이터 탐색
 # ════════════════════════════════════════════════════════════════════════════
 with tab_explore:
+    st.markdown(
+        "<div style='background:#fbf0d9;border:1px solid #efd9a8;border-radius:12px;"
+        "padding:0.9rem 1.2rem;margin:1.2rem 0 1.5rem;display:flex;align-items:center;gap:0.8rem;'>"
+        "<span style='font-size:1rem;'>🔬</span>"
+        "<div>"
+        "<span style='font-size:0.8rem;font-weight:700;color:#9a6207;'>베타 기능 · 데모 예시</span>"
+        "<span style='font-size:0.8rem;color:#9a6207;margin-left:0.6rem;'>"
+        "현재 개발 중인 기능으로, 아래 내용은 실제 데이터 기반 예시입니다.</span>"
+        "</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
     st.markdown("<div class='section-title'>크리에이터 탐색</div>", unsafe_allow_html=True)
     st.caption("크리에이터 관점에서 협업 가능성이 높은 브랜드를 역방향으로 조회합니다.")
 
@@ -994,6 +1006,89 @@ with tab_dashboard:
         use_container_width=True, hide_index=True
     )
 
+
+# ════════════════════════════════════════════════════════════════════════════
+# TAB 4: About
+# ════════════════════════════════════════════════════════════════════════════
+with tab_about:
+    st.markdown(
+        "<div style='max-width:680px;margin:3rem auto 0;padding:0 1rem;'>"
+
+        # 로고 + 이름
+        "<div style='display:flex;align-items:center;gap:10px;margin-bottom:2rem;'>"
+        "<span style='width:36px;height:36px;border-radius:9px;background:#0f0f0e;"
+        "color:#fafaf9;display:inline-flex;align-items:center;justify-content:center;"
+        "font-size:22px;font-weight:700;font-family:Pretendard,sans-serif;'>V</span>"
+        "<span style='font-size:1.8rem;font-weight:700;letter-spacing:-0.5px;'>Vouch</span>"
+        "</div>"
+
+        # Vouch의 의미
+        "<div style='margin-bottom:2rem;'>"
+        "<div style='font-size:0.72rem;font-weight:600;color:#76766f;letter-spacing:.1em;"
+        "text-transform:uppercase;margin-bottom:0.6rem;'>이름의 의미</div>"
+        "<div style='font-size:1.1rem;font-weight:700;color:#0f0f0e;margin-bottom:0.5rem;'>"
+        "\"Vouch\" — 보증하다, 책임지고 추천하다</div>"
+        "<div style='font-size:0.92rem;color:#3a3a38;line-height:1.8;'>"
+        "Vouch는 <b>보증(vouch for)</b>에서 따온 이름입니다. "
+        "단순히 팔로워 수가 많은 크리에이터가 아니라, "
+        "성실함·커뮤니케이션·약속 이행·팔로워 진정성을 데이터로 검증한 뒤 "
+        "브랜드에 <b>책임지고 추천</b>한다는 의미를 담았습니다."
+        "</div>"
+        "</div>"
+
+        # 만들게 된 계기
+        "<div style='margin-bottom:2rem;'>"
+        "<div style='font-size:0.72rem;font-weight:600;color:#76766f;letter-spacing:.1em;"
+        "text-transform:uppercase;margin-bottom:0.6rem;'>만들게 된 계기</div>"
+        "<div style='font-size:0.92rem;color:#3a3a38;line-height:1.8;'>"
+        "인플루언서 마케팅 시장이 빠르게 성장하고 있지만, "
+        "브랜드 담당자들은 여전히 <b>크리에이터의 신뢰도를 검증할 마땅한 방법</b>이 없었습니다. "
+        "허위 팔로워, 잦은 마감 지연, 소통 단절 — 실제 협업 현장에서 반복되는 문제들을 "
+        "데이터로 해결하고자 이 프로젝트를 시작했습니다."
+        "</div>"
+        "</div>"
+
+        # 어떻게 작동하는가
+        "<div style='margin-bottom:2rem;'>"
+        "<div style='font-size:0.72rem;font-weight:600;color:#76766f;letter-spacing:.1em;"
+        "text-transform:uppercase;margin-bottom:0.6rem;'>어떻게 작동하나요</div>"
+        "<div style='display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;'>"
+        "<div style='background:#ffffff;border:1px solid #e8e8e3;border-radius:12px;padding:1rem 1.1rem;'>"
+        "<div style='font-size:1.1rem;margin-bottom:0.4rem;'>📝</div>"
+        "<div style='font-size:0.85rem;font-weight:700;margin-bottom:0.3rem;'>브리프 입력</div>"
+        "<div style='font-size:0.8rem;color:#76766f;line-height:1.6;'>브랜드와 캠페인을 자유롭게 설명하면 자동으로 조건을 분석합니다.</div>"
+        "</div>"
+        "<div style='background:#ffffff;border:1px solid #e8e8e3;border-radius:12px;padding:1rem 1.1rem;'>"
+        "<div style='font-size:1.1rem;margin-bottom:0.4rem;'>🔍</div>"
+        "<div style='font-size:0.85rem;font-weight:700;margin-bottom:0.3rem;'>데이터 검증</div>"
+        "<div style='font-size:0.8rem;color:#76766f;line-height:1.6;'>490명의 크리에이터를 CBF + CF 하이브리드 모델로 스코어링합니다.</div>"
+        "</div>"
+        "<div style='background:#ffffff;border:1px solid #e8e8e3;border-radius:12px;padding:1rem 1.1rem;'>"
+        "<div style='font-size:1.1rem;margin-bottom:0.4rem;'>📊</div>"
+        "<div style='font-size:0.85rem;font-weight:700;margin-bottom:0.3rem;'>리스크 분석</div>"
+        "<div style='font-size:0.8rem;color:#76766f;line-height:1.6;'>성실함·커뮤니케이션·약속 이행·팔로워 진정성 4개 축으로 평가합니다.</div>"
+        "</div>"
+        "<div style='background:#ffffff;border:1px solid #e8e8e3;border-radius:12px;padding:1rem 1.1rem;'>"
+        "<div style='font-size:1.1rem;margin-bottom:0.4rem;'>🤝</div>"
+        "<div style='font-size:0.85rem;font-weight:700;margin-bottom:0.3rem;'>최적 매칭</div>"
+        "<div style='font-size:0.8rem;color:#76766f;line-height:1.6;'>976건의 실제 협업 데이터를 기반으로 최적의 파트너를 추천합니다.</div>"
+        "</div>"
+        "</div>"
+        "</div>"
+
+        # 팀 정보
+        "<div style='border-top:1px solid #e8e8e3;padding-top:1.5rem;margin-bottom:3rem;'>"
+        "<div style='font-size:0.72rem;font-weight:600;color:#76766f;letter-spacing:.1em;"
+        "text-transform:uppercase;margin-bottom:0.6rem;'>팀 정보</div>"
+        "<div style='font-size:0.88rem;color:#3a3a38;line-height:1.8;'>"
+        "KAIST 경영대학 &nbsp;·&nbsp; Business Analytics 2026<br>"
+        "본 서비스는 수업 프로젝트로 제작되었으며, 모든 데이터는 학습 목적으로 생성된 가상 데이터입니다."
+        "</div>"
+        "</div>"
+
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
 # ── 푸터 ──────────────────────────────────────────────────────────────────────
 st.markdown("---")
