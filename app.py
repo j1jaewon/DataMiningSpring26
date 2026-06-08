@@ -43,6 +43,7 @@ PLOTLY_COLORS = [
 st.markdown("""
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
 
 :root {
   --bg: #fafaf9;
@@ -59,6 +60,7 @@ st.markdown("""
   --warn: #9a6207; --warn-bg: #fbf0d9; --warn-line: #efd9a8;
   --risk: #c42626; --risk-bg: #fbe6e4; --risk-line: #f1c2bd;
   --sans: 'Pretendard', 'Pretendard Variable', -apple-system, sans-serif;
+  --brand: 'Playfair Display', Georgia, serif;
   --r: 14px; --r-lg: 20px; --r-sm: 9px;
 }
 
@@ -376,32 +378,20 @@ st.markdown(
     "<div style='display:flex;align-items:center;justify-content:space-between;"
     "padding:1.2rem 0 1rem;border-bottom:1px solid #e8e8e3;margin-bottom:0.5rem;'>"
     "<div style='display:flex;align-items:center;gap:10px;'>"
-    "<span style='width:28px;height:28px;border-radius:7px;background:#0f0f0e;"
+    "<span style='width:30px;height:30px;border-radius:7px;background:#0f0f0e;"
     "color:#fafaf9;display:inline-flex;align-items:center;justify-content:center;"
-    "font-family:var(--sans);font-size:17px;line-height:1;'>V</span>"
-    "<span style='font-family:var(--sans);font-size:22px;letter-spacing:.2px;'>Vouch</span>"
+    "font-family:var(--brand);font-size:18px;font-weight:700;line-height:1;'>V</span>"
+    "<span style='font-family:var(--brand);font-size:24px;font-weight:700;"
+    "letter-spacing:0px;color:#0f0f0e;'>Vouch</span>"
     "</div>"
-    "<div style='display:flex;gap:2.5rem;align-items:center;font-size:0.82rem;color:#76766f;'>"
-    "<span style='display:flex;align-items:center;gap:5px;'>"
-    "<span style='font-family:var(--sans);font-size:1.3rem;color:#0f0f0e;line-height:1;'>490</span>"
-    "<span>크리에이터</span></span>"
-    "<span style='width:1px;height:1.2rem;background:#e8e8e3;display:inline-block;'></span>"
-    "<span style='display:flex;align-items:center;gap:5px;'>"
-    "<span style='font-family:var(--sans);font-size:1.3rem;color:#0f0f0e;line-height:1;'>100</span>"
-    "<span>브랜드</span></span>"
-    "<span style='width:1px;height:1.2rem;background:#e8e8e3;display:inline-block;'></span>"
-    "<span style='display:flex;align-items:center;gap:5px;'>"
-    "<span style='font-family:var(--sans);font-size:1.3rem;color:#0f0f0e;line-height:1;'>976</span>"
-    "<span>협업 이력</span></span>"
     "<span style='font-size:0.75rem;color:#adadA6;'>KAIST BIZ · 2026</span>"
-    "</div>"
     "</div>",
     unsafe_allow_html=True,
 )
 
 # ── 메인 탭 ───────────────────────────────────────────────────────────────────
 tab_about, tab_match, tab_explore, tab_dashboard = st.tabs([
-    "ℹ️ About", "🎯 브랜드 매칭", "🔍 크리에이터 탐색", "📊 성과 대시보드"
+    "About", "🎯 브랜드 매칭", "🔍 크리에이터 탐색 β", "📊 성과 대시보드"
 ])
 
 
@@ -440,8 +430,19 @@ with tab_match:
         key='brief_input',
     )
 
-    col_o1, col_o2, col_o3 = st.columns([3, 3, 4])
+    col_o1, col_o2 = st.columns([3, 7])
     with col_o1:
+        top_n = st.selectbox(
+            "추천 인원",
+            list(range(1, 11)),
+            index=2,
+            help="추천받을 크리에이터 수를 선택하세요 (1~10명).",
+        )
+    with col_o2:
+        st.write("")
+        run = st.button("크리에이터 추천받기 →", type="primary", use_container_width=True)
+
+    with st.expander("⚙️ 고급 설정"):
         risk_threshold = st.selectbox(
             "최소 Risk Score",
             [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
@@ -456,24 +457,6 @@ with tab_match:
                 "기준을 높일수록 추천 후보가 줄어들 수 있습니다."
             ),
         )
-    with col_o2:
-        top_n = st.selectbox(
-            "추천 인원",
-            list(range(1, 11)),
-            index=2,
-            help=(
-                "**추천받을 크리에이터 수 (1~10명)**\n\n"
-                "매칭 점수 = 카테고리 점수(CBF) × 0.5 + 조건 매칭 점수(CBF) × 0.5\n\n"
-                "- **A등급 (0.9 이상)** — 매우 높은 적합도\n"
-                "- **B등급 (0.8 ~ 0.9)** — 높은 적합도, 적극 추천\n"
-                "- **C등급 (0.7 ~ 0.8)** — 보통 적합도\n"
-                "- **D등급 (0.7 미만)** — 낮은 적합도, 참고용\n\n"
-                "B등급 이상 크리에이터를 우선 검토하세요."
-            ),
-        )
-    with col_o3:
-        st.write("")
-        run = st.button("크리에이터 추천받기 →", type="primary", use_container_width=True)
 
     CHIP_EXAMPLES = [
         ("비건 스킨케어 런칭 캠페인",
@@ -525,6 +508,15 @@ with tab_match:
             f"border:1px solid #e8e8e3;border-radius:999px;padding:3px 10px;'>플랫폼 {brand_attrs['Preferred_Platform']}</span>"
             f"<span style='font-size:0.75rem;font-weight:600;color:#3a3a38;background:#fafaf9;"
             f"border:1px solid #e8e8e3;border-radius:999px;padding:3px 10px;'>Max CPM {brand_attrs['Max_CPM']:,.0f}원</span>"
+            "</div>"
+            "<div style='margin-top:0.75rem;padding-top:0.6rem;border-top:1px solid #e8e8e3;"
+            "font-size:0.75rem;color:#76766f;line-height:1.7;'>"
+            "<span style='font-weight:600;color:#3a3a38;'>참고 — 매칭 등급 기준</span>&nbsp;&nbsp;"
+            "매칭 점수 = 카테고리(CBF) × 0.5 + 조건 매칭(CBF) × 0.5&nbsp;&nbsp;|&nbsp;&nbsp;"
+            "<span style='color:#15803d;font-weight:600;'>A 0.9+</span> 강력 추천&nbsp;"
+            "<span style='color:#2433ff;font-weight:600;'>B 0.8~0.9</span> 추천&nbsp;"
+            "<span style='color:#9a6207;font-weight:600;'>C 0.7~0.8</span> 보통&nbsp;"
+            "<span style='color:#c42626;font-weight:600;'>D 0.7-</span> 참고용"
             "</div>"
             "</div>",
             unsafe_allow_html=True,
@@ -1119,22 +1111,18 @@ with tab_about:
         "text-transform:uppercase;margin-bottom:0.6rem;'>어떻게 작동하나요</div>"
         "<div style='display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;'>"
         "<div style='background:#ffffff;border:1px solid #e8e8e3;border-radius:12px;padding:1rem 1.1rem;'>"
-        "<div style='font-size:1.1rem;margin-bottom:0.4rem;'>📝</div>"
         "<div style='font-size:0.85rem;font-weight:700;margin-bottom:0.3rem;'>브리프 입력</div>"
         "<div style='font-size:0.8rem;color:#76766f;line-height:1.6;'>브랜드와 캠페인을 자유롭게 설명하면 자동으로 조건을 분석합니다.</div>"
         "</div>"
         "<div style='background:#ffffff;border:1px solid #e8e8e3;border-radius:12px;padding:1rem 1.1rem;'>"
-        "<div style='font-size:1.1rem;margin-bottom:0.4rem;'>🔍</div>"
         "<div style='font-size:0.85rem;font-weight:700;margin-bottom:0.3rem;'>데이터 검증</div>"
         "<div style='font-size:0.8rem;color:#76766f;line-height:1.6;'>490명의 크리에이터를 CBF + CF 하이브리드 모델로 스코어링합니다.</div>"
         "</div>"
         "<div style='background:#ffffff;border:1px solid #e8e8e3;border-radius:12px;padding:1rem 1.1rem;'>"
-        "<div style='font-size:1.1rem;margin-bottom:0.4rem;'>📊</div>"
         "<div style='font-size:0.85rem;font-weight:700;margin-bottom:0.3rem;'>리스크 분석</div>"
         "<div style='font-size:0.8rem;color:#76766f;line-height:1.6;'>성실함·커뮤니케이션·약속 이행·팔로워 진정성 4개 축으로 평가합니다.</div>"
         "</div>"
         "<div style='background:#ffffff;border:1px solid #e8e8e3;border-radius:12px;padding:1rem 1.1rem;'>"
-        "<div style='font-size:1.1rem;margin-bottom:0.4rem;'>🤝</div>"
         "<div style='font-size:0.85rem;font-weight:700;margin-bottom:0.3rem;'>최적 매칭</div>"
         "<div style='font-size:0.8rem;color:#76766f;line-height:1.6;'>976건의 실제 협업 데이터를 기반으로 최적의 파트너를 추천합니다.</div>"
         "</div>"
