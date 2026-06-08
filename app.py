@@ -43,7 +43,6 @@ PLOTLY_COLORS = [
 st.markdown("""
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 
 :root {
   --bg: #fafaf9;
@@ -59,7 +58,6 @@ st.markdown("""
   --safe: #15803d; --safe-bg: #e4f4e7; --safe-line: #bbe3c4;
   --warn: #9a6207; --warn-bg: #fbf0d9; --warn-line: #efd9a8;
   --risk: #c42626; --risk-bg: #fbe6e4; --risk-line: #f1c2bd;
-  --serif: 'Instrument Serif', serif;
   --sans: 'Pretendard', 'Pretendard Variable', -apple-system, sans-serif;
   --r: 14px; --r-lg: 20px; --r-sm: 9px;
 }
@@ -136,9 +134,8 @@ section[data-testid="stSidebar"] { background: var(--surface) !important; }
     text-align: center;
 }
 .kpi-value {
-    font-family: var(--serif);
     font-size: 2rem;
-    font-weight: 400;
+    font-weight: 700;
     color: var(--ink);
     line-height: 1;
 }
@@ -376,20 +373,20 @@ st.markdown(
     "<div style='display:flex;align-items:center;gap:10px;'>"
     "<span style='width:28px;height:28px;border-radius:7px;background:#0f0f0e;"
     "color:#fafaf9;display:inline-flex;align-items:center;justify-content:center;"
-    "font-family:\"Instrument Serif\",serif;font-size:17px;line-height:1;'>V</span>"
-    "<span style='font-family:\"Instrument Serif\",serif;font-size:22px;letter-spacing:.2px;'>Vouch</span>"
+    "font-family:var(--sans);font-size:17px;line-height:1;'>V</span>"
+    "<span style='font-family:var(--sans);font-size:22px;letter-spacing:.2px;'>Vouch</span>"
     "</div>"
     "<div style='display:flex;gap:2.5rem;align-items:center;font-size:0.82rem;color:#76766f;'>"
     "<span style='display:flex;align-items:center;gap:5px;'>"
-    "<span style='font-family:\"Instrument Serif\",serif;font-size:1.3rem;color:#0f0f0e;line-height:1;'>490</span>"
+    "<span style='font-family:var(--sans);font-size:1.3rem;color:#0f0f0e;line-height:1;'>490</span>"
     "<span>크리에이터</span></span>"
     "<span style='width:1px;height:1.2rem;background:#e8e8e3;display:inline-block;'></span>"
     "<span style='display:flex;align-items:center;gap:5px;'>"
-    "<span style='font-family:\"Instrument Serif\",serif;font-size:1.3rem;color:#0f0f0e;line-height:1;'>100</span>"
+    "<span style='font-family:var(--sans);font-size:1.3rem;color:#0f0f0e;line-height:1;'>100</span>"
     "<span>브랜드</span></span>"
     "<span style='width:1px;height:1.2rem;background:#e8e8e3;display:inline-block;'></span>"
     "<span style='display:flex;align-items:center;gap:5px;'>"
-    "<span style='font-family:\"Instrument Serif\",serif;font-size:1.3rem;color:#0f0f0e;line-height:1;'>976</span>"
+    "<span style='font-family:var(--sans);font-size:1.3rem;color:#0f0f0e;line-height:1;'>976</span>"
     "<span>협업 이력</span></span>"
     "<span style='font-size:0.75rem;color:#adadA6;'>KAIST BIZ · 2026</span>"
     "</div>"
@@ -413,7 +410,7 @@ with tab_match:
         "<div style='font-size:0.75rem;font-weight:600;color:#2433ff;letter-spacing:.08em;"
         "text-transform:uppercase;margin-bottom:1rem;'>"
         "· 리스크까지 측정하는 크리에이터 매칭</div>"
-        "<div style='font-family:serif;font-size:2.6rem;font-weight:400;line-height:1.1;"
+        "<div style='font-size:2.6rem;font-weight:700;line-height:1.1;"
         "letter-spacing:-1px;margin-bottom:0.8rem;'>"
         "어떤 크리에이터를<br>찾고 계신가요<span style='color:#2433ff;font-style:italic;'>?</span></div>"
         "<div style='font-size:1rem;color:#76766f;line-height:1.75;margin-bottom:2rem;'>"
@@ -831,7 +828,7 @@ with tab_explore:
                 plot_bgcolor='white', paper_bgcolor='white',
                 xaxis=dict(range=[0, 1.05], showgrid=False, visible=False),
                 yaxis=dict(showgrid=False, autorange='reversed'),
-                font=dict(family='Noto Sans KR, sans-serif', size=11),
+                font=dict(family='Pretendard, sans-serif', size=11),
                 bargap=0.5,
             )
             st.plotly_chart(fig_exp, use_container_width=True,
@@ -896,7 +893,7 @@ with tab_dashboard:
             plot_bgcolor='white', paper_bgcolor='white',
             xaxis=dict(range=[0, 100], showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
-            font=dict(family='Noto Sans KR, sans-serif', size=12),
+            font=dict(family='Pretendard, sans-serif', size=12),
             bargap=0.5,
         )
         st.plotly_chart(fig_ind, use_container_width=True,
@@ -928,7 +925,7 @@ with tab_dashboard:
             plot_bgcolor='white', paper_bgcolor='white',
             xaxis=dict(showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
-            font=dict(family='Noto Sans KR, sans-serif', size=12),
+            font=dict(family='Pretendard, sans-serif', size=12),
             bargap=0.5,
         )
         st.plotly_chart(fig_ctr, use_container_width=True,
@@ -957,7 +954,7 @@ with tab_dashboard:
             plot_bgcolor='white', paper_bgcolor='white',
             xaxis=dict(showgrid=False, visible=False),
             yaxis=dict(showgrid=False),
-            font=dict(family='Noto Sans KR, sans-serif', size=12),
+            font=dict(family='Pretendard, sans-serif', size=12),
             bargap=0.5,
         )
         st.plotly_chart(fig_top, use_container_width=True,
@@ -980,7 +977,7 @@ with tab_dashboard:
             height=320, margin=dict(l=0, r=0, t=10, b=0),
             plot_bgcolor='#fafafa', paper_bgcolor='white',
             legend=dict(title='', orientation='h', y=1.08),
-            font=dict(family='Noto Sans KR, sans-serif', size=12),
+            font=dict(family='Pretendard, sans-serif', size=12),
         )
         st.plotly_chart(fig_sc, use_container_width=True,
                         config={'displayModeBar': False})
