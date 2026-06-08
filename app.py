@@ -395,8 +395,8 @@ st.markdown(
 )
 
 # ── 메인 탭 ───────────────────────────────────────────────────────────────────
-tab_match, tab_explore, tab_dashboard, tab_about = st.tabs([
-    "🎯 브랜드 매칭", "🔍 크리에이터 탐색", "📊 성과 대시보드", "ℹ️ About"
+tab_about, tab_match, tab_explore, tab_dashboard = st.tabs([
+    "ℹ️ About", "🎯 브랜드 매칭", "🔍 크리에이터 탐색", "📊 성과 대시보드"
 ])
 
 
@@ -409,7 +409,7 @@ with tab_match:
         "<div style='text-align:center;padding:2.5rem 0 0;'>"
         "<div style='font-size:0.75rem;font-weight:600;color:#76766f;letter-spacing:.08em;"
         "text-transform:uppercase;margin-bottom:1rem;font-family:Pretendard,sans-serif;'>"
-        "· 리스크까지 측정하는 크리에이터 매칭</div>"
+        "리스크까지 측정하는 크리에이터 매칭</div>"
         "<div style='font-size:2.6rem;font-weight:700;line-height:1.1;"
         "letter-spacing:-1px;margin-bottom:0.8rem;font-family:Pretendard,sans-serif;color:#0f0f0e;'>"
         "어떤 크리에이터를<br>찾고 계신가요?</div>"
@@ -431,19 +431,39 @@ with tab_match:
         height=140,
     )
 
-    col_o1, col_o2, col_o3, col_o4 = st.columns([2, 2, 2, 3])
+    col_o1, col_o2, col_o3 = st.columns([3, 3, 4])
     with col_o1:
         risk_threshold = st.selectbox(
             "최소 Risk Score",
-            [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+            [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
             index=3,
-            help="**콘텐츠 신뢰도 · 브랜드 안전성 지수**\n\n4.0 이상: 우수 / 2.5~3.0: 주의",
+            help=(
+                "**콘텐츠 신뢰도 · 브랜드 안전성 지수**\n\n"
+                "크리에이터의 과거 협업 이력, 논란 여부, 광고 콘텐츠 비율 등을 종합한 점수입니다.\n\n"
+                "- **4.0 ~ 5.0** — 우수: 브랜드 안전, 적극 추천\n"
+                "- **3.0 ~ 4.0** — 양호: 대부분 안전, 검토 권장\n"
+                "- **2.5 ~ 3.0** — 주의: 선별 필요, 면밀한 검토 요망\n"
+                "- **2.5 미만** — 자동 제외\n\n"
+                "기준을 높일수록 추천 후보가 줄어들 수 있습니다."
+            ),
         )
     with col_o2:
-        top_n = st.selectbox("추천 인원", [3, 5, 7, 10], index=0)
+        top_n = st.selectbox(
+            "추천 인원",
+            list(range(1, 11)),
+            index=2,
+            help=(
+                "**추천받을 크리에이터 수 (1~10명)**\n\n"
+                "매칭 점수 = 카테고리 점수(CBF) × 0.5 + 조건 매칭 점수(CBF) × 0.5\n\n"
+                "- **A등급 (0.9 이상)** — 매우 높은 적합도\n"
+                "- **B등급 (0.8 ~ 0.9)** — 높은 적합도, 적극 추천\n"
+                "- **C등급 (0.7 ~ 0.8)** — 보통 적합도\n"
+                "- **D등급 (0.7 미만)** — 낮은 적합도, 참고용\n\n"
+                "B등급 이상 크리에이터를 우선 검토하세요."
+            ),
+        )
     with col_o3:
         st.write("")
-    with col_o4:
         run = st.button("크리에이터 추천받기 →", type="primary", use_container_width=True)
 
     st.markdown(
@@ -1081,8 +1101,7 @@ with tab_about:
         "<div style='font-size:0.72rem;font-weight:600;color:#76766f;letter-spacing:.1em;"
         "text-transform:uppercase;margin-bottom:0.6rem;'>팀 정보</div>"
         "<div style='font-size:0.88rem;color:#3a3a38;line-height:1.8;'>"
-        "KAIST 경영대학 &nbsp;·&nbsp; Business Analytics 2026<br>"
-        "본 서비스는 수업 프로젝트로 제작되었으며, 모든 데이터는 학습 목적으로 생성된 가상 데이터입니다."
+        "KAIST 경영대학 &nbsp;·&nbsp; Business Analytics 2026"
         "</div>"
         "</div>"
 
