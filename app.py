@@ -228,10 +228,10 @@ brand_name_map = dict(zip(brands['Brand_ID'], brands['Brand_Name']))
 
 # ── 텍스트 파싱 & 텍스트 기반 추천 ──────────────────────────────────────────
 import re as _re
+import json as _json
 
-def parse_brand_text(text):
-    t = text.lower()
-
+def _parse_brand_text_keyword(text):
+    """Keyword-based fallback parser."""
     industry = '뷰티'
     industry_map = {
         '뷰티':    ['뷰티', '스킨케어', '화장', '코스메틱', '메이크업', '향수'],
@@ -281,14 +281,70 @@ def parse_brand_text(text):
         max_cpm = budget_won / 300.0
 
     return {
-        'Industry':          industry,
-        'Target_Age':        target_age,
-        'Target_Gender':     target_gender,
+        'Industry':           industry,
+        'Target_Age':         target_age,
+        'Target_Gender':      target_gender,
         'Preferred_Platform': platform,
-        'Max_CPM':           max_cpm,
-        'Monthly_Budget':    int(max_cpm * 300),
-        'Brand_Name':        '입력된 브랜드',
+        'Max_CPM':            max_cpm,
+        'Monthly_Budget':     int(max_cpm * 300),
+        'Brand_Name':         '입력된 브랜드',
     }
+
+def parse_brand_text(text):
+    """Extract brand attributes from free-form Korean text using Claude API,
+    with automatic keyword-based fallback if the API key is absent or the call fails."""
+    api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return _parse_brand_text_keyword(text)
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+
+        system_prompt = (
+            "당신은 브랜드 마케팅 전문가입니다. "
+            "사용자가 입력한 브랜드 소개 텍스트를 분석하여 아래 JSON 형식으로만 응답하세요. "
+            "설명이나 다른 텍스트 없이 JSON만 반환하세요.\n\n"
+            "반환 형식:\n"
+            "{\n"
+            "  \"Brand_Name\": \"브랜드명 (언급 없으면 입력된 브랜드)\",\n"
+            "  \"Industry\": \"뷰티|패션|식품|테크|게임|생활용품|피트니스|교육|여행|헬스케어 중 하나\",\n"
+            "  \"Target_Age\": \"13-17|18-34|25-44|35-54 중 하나\",\n"
+            "  \"Target_Gender\": \"Mixed|Female|Male 중 하나\",\n"
+            "  \"Preferred_Platform\": \"Mixed|YouTube|Instagram|TikTok 중 하나\",\n"
+            "  \"Monthly_Budget\": 월예산정수원단위언급없으면1500000,\n"
+            "  \"Max_CPM\": 최대CPM실수언급없으면5000.0\n"
+            "}"
+        )
+
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            system=system_prompt,
+            messages=[{"role": "user", "content": text}],
+        )
+
+        raw = response.content[0].text.strip()
+        fence = _re.search(r'```(?:json)?\s*([\s\S]+?)\s*```', raw)
+        parsed = _json.loads(fence.group(1) if fence else raw)
+
+        valid_industries = {'뷰티', '패션', '식품', '테크', '게임', '생활용품', '피트니스', '교육', '여행', '헬스케어'}
+        valid_ages      = {'13-17', '18-34', '25-44', '35-54'}
+        valid_genders   = {'Mixed', 'Female', 'Male'}
+        valid_platforms = {'Mixed', 'YouTube', 'Instagram', 'TikTok'}
+
+        return {
+            'Brand_Name':         str(parsed.get('Brand_Name', '입력된 브랜드')),
+            'Industry':           parsed['Industry'] if parsed.get('Industry') in valid_industries else '뷰티',
+            'Target_Age':         parsed['Target_Age'] if parsed.get('Target_Age') in valid_ages else '18-34',
+            'Target_Gender':      parsed['Target_Gender'] if parsed.get('Target_Gender') in valid_genders else 'Mixed',
+            'Preferred_Platform': parsed['Preferred_Platform'] if parsed.get('Preferred_Platform') in valid_platforms else 'Mixed',
+            'Max_CPM':            float(parsed.get('Max_CPM', 5000.0)),
+            'Monthly_Budget':     int(parsed.get('Monthly_Budget', 1_500_000)),
+        }
+
+    except Exception:
+        return _parse_brand_text_keyword(text)
 
 
 def recommend_from_text(brand_attrs, creators_df, risk_threshold=2.5, top_n=3):
